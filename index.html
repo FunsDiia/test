@@ -980,6 +980,34 @@
         </div>
     </div>
 
+
+
+    <div class="document_block_div zbroya_block_div">
+        <div>
+            <div class="main_block">
+                <div class="border">
+                    <img src="assets/document.png" alt="" />
+                    <span>Повна інформація</span>
+                </div>
+                <div class="border">
+                    <img src="assets/star.png" alt="" />
+                    <span>Оцінити документ</span>
+                </div>
+                <div class="border">
+                    <img src="assets/exchange.png" alt="" />
+                    <span>Змінити порядок документів</span>
+                </div>
+                <div>
+                    <img src="assets/question.png" alt="" />
+                    <span>Питання та відповіді</span>
+                </div>
+            </div>
+            <div class="close_block" data-index="zbroya">
+                Закрити
+            </div>
+        </div>
+    </div>
+
     <style>
         .video-background {
             position: absolute;
@@ -2716,24 +2744,7 @@
                     justify-content: center;
                 }
 
-                /* === Картка: Дозвіл на зберігання і носіння зброї === */
 
-                /* Іконка-пістолет у правому верхньому куті */
-                .zbroya-icon {
-                    position: absolute;
-                    top: 16px;
-                    right: 15px;
-                    width: 36px;
-                    height: 36px;
-                    opacity: 0.20;
-                    color: #000;
-                    pointer-events: none;
-                }
-
-                .zbroya-icon svg {
-                    width: 100%;
-                    height: 100%;
-                }
             </style>
             <div class="documentSlider swiper-container">
                 <div class="swiper-wrapper" style="margin-bottom: 20px;">
@@ -3496,77 +3507,68 @@
                     <!-- ======= ДОЗВІЛ НА ЗБРОЮ ======= -->
                     <div class="swiper-slide">
                         <div class="slider zbroya">
-                            <div class="content front">
-                                <!-- Іконка-пістолет у правому верхньому куті -->
-                                <div class="zbroya-icon" aria-hidden="true">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M6 26h32l4-8h10v8h-6l2 6H36l-2-4H14"/>
-                                        <path d="M14 26v10h6l2 4h6v-4"/>
-                                        <path d="M20 40l-4 12h6l2-4h4l2 4h6l-4-12"/>
-                                        <circle cx="10" cy="26" r="4"/>
-                                    </svg>
-                                </div>
+                            <div class="content front" style="justify-content: space-between;">
 
-                                <h1 style="width:0">Дозвіл на зберігання і носіння зброї</h1>
-
-                                <div class="dataBlock">
-                                    <div class="dataInfo" style="width:100%">
-                                        <div style="width:100%">
-                                            <span class="dataInfoFirst">Серія та номер:</span>
-                                            <span id="zbroyaNumber">АБ 123456</span>
-                                        </div>
-                                        <div style="width:100%">
-                                            <span class="dataInfoFirst">Вид зброї:</span>
-                                            <span id="zbroyaType">Пістолет газовий</span>
-                                        </div>
-                                        <div style="width:100%">
-                                            <span class="dataInfoFirst">Модель / Калібр:</span>
-                                            <span id="zbroyaModel">Zoraki 906 / 9 мм</span>
-                                        </div>
-                                        <div style="width:100%">
-                                            <span class="dataInfoFirst">Дата видачі:</span>
-                                            <span id="zbroyaDateGive">15.03.2022</span>
-                                        </div>
-                                        <div style="width:100%">
-                                            <span class="dataInfoFirst">Дійсний до:</span>
-                                            <span id="zboyaDiysnyi">15.03.2027</span>
-                                        </div>
+                                <!-- Верхня частина: заголовок + поле зброї -->
+                                <div>
+                                    <h1 style="font-size: 20px; font-weight: 400; line-height: 1.3; margin-bottom: 20px; width: auto;">
+                                        Дозвіл на зберігання і носіння зброї фізичною особою
+                                    </h1>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <span style="font-size: 13px; color: rgba(0,0,0,0.6);">Зброя:</span>
+                                        <span id="zbroyaType" style="font-size: 13px; font-weight: 300; line-height: 1.4;">Пістолет ПМ (9-мм пістолет Макарова)</span>
                                     </div>
                                 </div>
 
-                                <div class="line1 marquee"
-                                     style="
-                                            background: linear-gradient(90deg, #f5c5a3, #e8a87c);
-                                            margin: auto -15px 5px -15px;
-                                            position: relative;
-                                            overflow: hidden;
-                                            font-weight: 300;
-                                            font-size: 13px;
-                                            padding: 7px 0;
-                                        ">
-                                    • Документ оновлено о
-                                    <span id="getCurrentDateTime"></span>
-                                </div>
-
-                                <div class="fioBlock" style="margin-right:0">
-                                    <h2 id="name">Тут твоє ім'я</h2>
-                                    <div class="arrowSvg moreInfo"
-                                         data-index="zbroya"
+                                <!-- Нижня частина: marquee + номер + три точки -->
+                                <div>
+                                    <div class="line2 marquee"
                                          style="
-                                                background-color: transparent;
-                                                bottom: 0;
-                                                right: 0;
+                                                background: linear-gradient(90deg, #b6eb9f, #9ccfcf);
+                                                margin: 0 -15px 12px -15px;
+                                                position: relative;
+                                                overflow: hidden;
+                                                font-weight: 300;
+                                                font-size: 13px;
+                                                padding: 7px 0;
                                             ">
-                                        <img style="
-                                                    filter: brightness(1) invert(0);
-                                                    width: 34px;
-                                                    height: 34px;
-                                                    transform: rotate(0);
-                                                "
-                                             src="assets/dots.png"
-                                             alt="" />
+                                        Дозвіл дійсний &bull; Дозвіл дійсний &bull; Дозвіл дійсний &bull;&nbsp;
+                                    </div>
+
+                                    <div style="
+                                                display: flex;
+                                                align-items: center;
+                                                justify-content: space-between;
+                                            ">
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <span id="zbroyaNumber"
+                                                  style="font-size: 26px; font-weight: 300;">0000004527</span>
+                                            <img class="copyPng"
+                                                 src="assets/copy.png"
+                                                 alt="" />
+                                        </div>
+                                        <div class="arrowSvg moreInfo"
+                                             data-index="zbroya"
+                                             style="
+                                                    background-color: black;
+                                                    padding: 8px;
+                                                    border-radius: 50%;
+                                                    display: flex;
+                                                    align-items: center;
+                                                    cursor: pointer;
+                                                ">
+                                            <img style="
+                                                        filter: brightness(0) invert(1);
+                                                        width: 18px;
+                                                        height: 18px;
+                                                        transform: rotate(0);
+                                                    "
+                                                 src="assets/dots.png"
+                                                 alt="" />
+                                        </div>
                                     </div>
                                 </div>
+
                             </div>
 
                             <div class="content back">
