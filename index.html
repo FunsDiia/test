@@ -2718,19 +2718,6 @@
 
                 /* === Картка: Дозвіл на зберігання і носіння зброї === */
 
-                /* Унікальний фон — теплий попелясто-бронзовий градієнт */
-                .front--zbroya {
-                    background: linear-gradient(
-                        145deg,
-                        rgba(210, 175, 140, 0.55) 0%,
-                        rgba(185, 145, 110, 0.45) 50%,
-                        rgba(160, 120, 90, 0.40) 100%
-                    ) !important;
-                    backdrop-filter: blur(12px);
-                    -webkit-backdrop-filter: blur(12px);
-                    border: 1px solid rgba(255, 220, 180, 0.35);
-                }
-
                 /* Іконка-пістолет у правому верхньому куті */
                 .zbroya-icon {
                     position: absolute;
@@ -2738,8 +2725,8 @@
                     right: 15px;
                     width: 36px;
                     height: 36px;
-                    opacity: 0.25;
-                    color: #3a2a1a;
+                    opacity: 0.20;
+                    color: #000;
                     pointer-events: none;
                 }
 
@@ -3509,7 +3496,7 @@
                     <!-- ======= ДОЗВІЛ НА ЗБРОЮ ======= -->
                     <div class="swiper-slide">
                         <div class="slider zbroya">
-                            <div class="content front front--zbroya">
+                            <div class="content front">
                                 <!-- Іконка-пістолет у правому верхньому куті -->
                                 <div class="zbroya-icon" aria-hidden="true">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
