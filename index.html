@@ -154,13 +154,6 @@
 
     html, body {
         overflow: hidden;
-        /* Smooth momentum scrolling inside scrollable child elements */
-        -webkit-overflow-scrolling: touch;
-    }
-
-    /* Perspective parent for 3D flip — must be on the parent, not the flipping element */
-    .swiper-slide {
-        perspective: 1200px;
     }
 
     .bg-start {
@@ -182,16 +175,7 @@
     }
 
     @supports (-webkit-touch-callout: none) {
-        .bg-start {
-            min-height: -webkit-fill-available;
-        }
-        /* Use dvh for better iPhone notch/home bar handling */
-        .video-background,
-        .start-div,
-        .main,
-        .loadpage {
-            height: 100dvh;
-        }
+        min-height: -webkit-fill-available;
     }
 
     @keyframes granimate {
@@ -400,26 +384,11 @@
         width: 100%;
         height: 100%;
         z-index: 1;
-        /* block-level transition handled via JS class + opacity */
     }
 
-    .block.active {
-        display: block;
-    }
-
-    /* Touch-action: pan-y lets vertical scroll work while capturing horizontal swipe in Swiper */
-    .swiper-container,
-    .documentSlider {
-        touch-action: pan-y;
-    }
-
-    /* Prevent layout shifts on swiper-slide height changes */
-    .swiper-slide {
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        box-sizing: border-box;
-    }
+        .block.active {
+            display: block;
+        }
 
     .textVizit {
         display: flex;
@@ -576,93 +545,42 @@
         font-size: 15px;
     }
 
-    /* ─── GPU LAYER BUDGET ─── */
-    .slider,
-    .front,
-    .back,
-    .modal,
-    .document_block_div > div {
-        will-change: transform;
-    }
-
     .slider {
         width: 95%;
         transform-style: preserve-3d;
-        /* replaced by anime.js — transition kept as safety fallback */
-        transition: transform 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
+        transition: transform 0.4s;
         position: relative;
         min-width: 0;
         height: 90%;
-        margin-top: 20px;
-        /* subtle lift shadow — multi-layer, not eye-burning */
-        filter: drop-shadow(0 8px 24px rgba(0,0,0,0.12)) drop-shadow(0 2px 6px rgba(0,0,0,0.06));
-    }
-
-    /* Shimmer overlay — runs on GPU via pseudo-element */
-    .slider::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 20px;
-        background: linear-gradient(
-            105deg,
-            transparent 30%,
-            rgba(255,255,255,0.45) 50%,
-            transparent 70%
-        );
-        background-size: 200% 100%;
-        background-position: 200% 0;
-        pointer-events: none;
-        z-index: 10;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    }
-    .slider.swiping::after {
-        opacity: 1;
-        animation: cardShimmer 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-    }
-    @keyframes cardShimmer {
-        from { background-position: 200% 0; }
-        to   { background-position: -200% 0; }
+        margin-top: 20px
     }
 
     .front {
         position: absolute;
-        /* Perfect glassmorphism: blur + transparent border */
-        background: rgba(255, 255, 255, 0.38);
-        backdrop-filter: blur(18px) saturate(1.6);
-        -webkit-backdrop-filter: blur(18px) saturate(1.6);
-        border: 1px solid rgba(255, 255, 255, 0.65);
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.8),
-            inset 0 -1px 0 rgba(255,255,255,0.2),
-            0 4px 24px rgba(0,0,0,0.06);
+        background-color: rgba(255, 255, 255, 0.4);
     }
 
     .back {
         position: relative;
-        background: rgba(255, 255, 255, 0.96);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border: 1px solid rgba(255,255,255,0.8);
+        background: #fff;
     }
 
     .front,
     .back {
         width: 100%;
         backface-visibility: hidden;
-        -webkit-backface-visibility: hidden;
         margin: auto;
         display: flex;
         flex-direction: column;
         padding: 20px 15px;
         border-radius: 20px;
+        -webkit-backface-visibility: hidden;
         height: 100%;
     }
 
-    .back.flipped {
-        transform: rotateY(0);
-    }
+        .back.flipped {
+            transform: rotateY(0);
+        }
 
     .back {
         transform: rotateY(180deg);
@@ -672,107 +590,6 @@
         position: absolute;
         bottom: 20px;
         right: 15px;
-    }
-
-    /* ─── MICRO-INTERACTIONS ─── */
-    .slider.pressed {
-        transform: scale(0.97) !important;
-    }
-
-    /* Parallax inner elements */
-    .dataBlock,
-    .dataInfo,
-    .fioBlock {
-        will-change: transform;
-        transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-
-    /* PIN DOTS spring transition */
-    .start-vhod > div {
-        transition: transform 0.22s cubic-bezier(0.34, 1.5, 0.64, 1),
-                    background 0.15s ease;
-    }
-
-    /* Prevent 300ms tap delay everywhere */
-    button, .footer > div, .services > div, .threeButtons > div,
-    .arrowSvg, .close_block, .copyPng {
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-        user-select: none;
-    }
-
-    /* Services tile press */
-    .services > div {
-        transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
-    }
-    .services > div:active {
-        transform: scale(0.95);
-    }
-
-    /* Soft neon glow on front card — multi-layer, easy on eyes */
-    .slider.glow-active .front {
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.85),
-            0 0 0 1px rgba(255,255,255,0.5),
-            0 8px 32px rgba(100,190,235,0.16),
-            0 2px 8px rgba(0,0,0,0.06);
-        transition: box-shadow 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-
-    /* Document block overlay — was missing transition, causing "snap" */
-    .document_block_div {
-        position: fixed;
-        width: 100%;
-        height: 100%;
-        top: 0;
-        left: 0;
-        background: rgba(0,0,0,0);
-        z-index: 100;
-        display: none;
-        align-items: flex-end;
-        justify-content: center;
-        transition: background 0.3s ease;
-    }
-    .document_block_div.active {
-        display: flex;
-        background: rgba(0,0,0,0.32);
-        backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
-    }
-    .document_block_div > div {
-        width: 100%;
-        max-height: 82vh;
-        background: rgba(255,255,255,0.97);
-        border-radius: 24px 24px 0 0;
-        overflow: hidden;
-        transform: translateY(100%);
-        transition: transform 0.42s cubic-bezier(0.34, 1.15, 0.64, 1);
-        will-change: transform;
-    }
-    .document_block_div > div.active {
-        transform: translateY(0);
-    }
-
-    /* Shimmer sweep on .slider during swipe */
-    @keyframes cardShimmer {
-        from { background-position: 200% 0; }
-        to   { background-position: -200% 0; }
-    }
-    .slider.swiping::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 20px;
-        background: linear-gradient(
-            105deg,
-            transparent 30%,
-            rgba(255,255,255,0.4) 50%,
-            transparent 70%
-        );
-        background-size: 200% 100%;
-        pointer-events: none;
-        z-index: 10;
-        animation: cardShimmer 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
     }
 
     .front > h1 {
@@ -832,20 +649,19 @@
         left: 0;
         right: 0;
         padding: 10px 10px 10px 10px;
-        padding-top: env(safe-area-inset-top, 10px);
+        padding-top: env( safe-area-inset-top, 10px ); /* 10px fallback for older browsers */
         background-color: #66c67f;
         color: black;
         text-align: center;
-        /* smooth spring-like slide */
-        transition: transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1);
-        transform: translateY(-110%);
+        transition: transform 0.3s;
+        transform: translateY(-100%);
         z-index: 1000;
         font-size: 13px;
     }
 
-    .notification.show {
-        transform: translateY(0);
-    }
+        .notification.show {
+            transform: translateY(0);
+        }
 
     @supports (padding-top: env(safe-area-inset-top)) {
         .notification {
@@ -940,7 +756,7 @@
                     <span>Питання та відповіді</span>
                 </div>
                 <div class="qrChangeInfo">
-                    <div data-index="pasport" class="openQrBtn">
+                    <div data-index="pasport" id="openQr">
                         <div style="background: black">
                             <img src="assets/qr-code.png"
                                  style="
@@ -950,7 +766,7 @@
                         </div>
                         <span>QR-код</span>
                     </div>
-                    <div data-index="pasport" class="openShBtn">
+                    <div data-index="pasport" id="openSh">
                         <div style="background: black">
                             <img src="assets/free-icon-barcode-7797192.png"
                                  style="
@@ -993,7 +809,7 @@
                     <span>Питання та відповіді</span>
                 </div>
                 <div class="qrChangeInfo">
-                    <div data-index="zagran" class="openQrBtn">
+                    <div data-index="zagran" id="openQr">
                         <div style="background: black">
                             <img src="assets/qr-code.png"
                                  style="
@@ -1003,7 +819,7 @@
                         </div>
                         <span>QR-код</span>
                     </div>
-                    <div data-index="zagran" class="openShBtn">
+                    <div data-index="zagran" id="openSh">
                         <div style="background: black">
                             <img src="assets/free-icon-barcode-7797192.png"
                                  style="
@@ -1040,7 +856,7 @@
                     <span>Питання та відповіді</span>
                 </div>
                 <div class="qrChangeInfo">
-                    <div data-index="study" class="openQrBtn">
+                    <div data-index="study" id="openQr">
                         <div style="background: black">
                             <img src="assets/qr-code.png"
                                  style="
@@ -1050,7 +866,7 @@
                         </div>
                         <span>QR-код</span>
                     </div>
-                    <div data-index="study" class="openShBtn">
+                    <div data-index="study" id="openSh">
                         <div style="background: black">
                             <img src="assets/free-icon-barcode-7797192.png"
                                  style="
@@ -1083,7 +899,7 @@
                     <span>Питання та відповіді</span>
                 </div>
                 <div class="qrChangeInfo">
-                    <div data-index="podatki" class="openQrBtn">
+                    <div data-index="podatki" id="openQr">
                         <div style="background: black">
                             <img src="assets/qr-code.png"
                                  style="
@@ -1093,7 +909,7 @@
                         </div>
                         <span>QR-код</span>
                     </div>
-                    <div data-index="podatki" class="openShBtn">
+                    <div data-index="podatki" id="openSh">
                         <div style="background: black">
                             <img src="assets/free-icon-barcode-7797192.png"
                                  style="
@@ -1117,7 +933,7 @@
                     <img src="assets/document.png" alt="" />
                     <span>Повна інформація</span>
                 </div>
-                <div class="border openQrBtn" data-index="eDoc">
+                <div class="border" id="openQr" data-index="eDoc">
                     <img src="assets/qr-code.png" alt="" />
                     <span>Код для перевірки</span>
                 </div>
@@ -1178,6 +994,31 @@
                     <span>Оцінити документ</span>
                 </div>
                 <div class="border">
+                    <div class="document_block_div zbroya_block_div">
+                        <div>
+                            <div class="main_block">
+                                <div class="border">
+                                    <img src="assets/document.png" alt="" />
+                                    <span>Повна інформація</span>
+                                </div>
+                                <div class="border">
+                                    <img src="assets/star.png" alt="" />
+                                    <span>Оцінити документ</span>
+                                </div>
+                                <div class="border">
+                                    <img src="assets/exchange.png" alt="" />
+                                    <span>Змінити порядок документів</span>
+                                </div>
+                                <div>
+                                    <img src="assets/question.png" alt="" />
+                                    <span>Питання та відповіді</span>
+                                </div>
+                            </div>
+                            <div class="close_block" data-index="zbroya">
+                                Закрити
+                            </div>
+                        </div>
+                    </div>
                     <img src="assets/exchange.png" alt="" />
                     <span>Змінити порядок документів</span>
                 </div>
@@ -2832,50 +2673,48 @@
                 const overlay = document.getElementById('overlay');
 
                 const ModalMoove = (modal, modalContent, overlay) => {
-                    let startY = 0;
-                    let currentY = 0;
+                    let startY;
+                    let currentY;
                     let isDragging = false;
 
-                    // passive: false only on touchmove so we can preventDefault on downward drag
                     modal.addEventListener('touchstart', function (e) {
                         startY = e.touches[0].clientY;
-                        currentY = startY;
                         isDragging = true;
                         modal.style.transition = 'none';
-                        if (overlay) overlay.style.transition = 'none';
-                    }, { passive: true });
+                        overlay.style.transition = 'none';
+                    });
 
                     modal.addEventListener('touchmove', function (e) {
                         if (!isDragging) return;
                         currentY = e.touches[0].clientY;
                         const diffY = currentY - startY;
 
+                        // Дозволяємо свайп вниз, якщо контент прокручений до самого верху
                         if (modalContent.scrollTop === 0 && diffY > 0) {
                             e.preventDefault();
                             modal.style.top = `calc(5% + ${diffY}px)`;
-                            if (overlay) overlay.style.opacity = Math.max(0, 0.7 - diffY / 900);
+                            const opacity = Math.max(0, 0.7 - diffY / 1000);
+                            overlay.style.opacity = opacity;
                         }
-                    }, { passive: false });
+                    });
 
                     modal.addEventListener('touchend', function () {
-                        if (!isDragging) return;
                         isDragging = false;
-                        // Premium spring-like ease for snap-back / close
-                        modal.style.transition = 'top 0.42s cubic-bezier(0.34, 1.15, 0.64, 1)';
-                        if (overlay) overlay.style.transition = 'opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                        modal.style.transition = 'top 0.3s';
+                        overlay.style.transition = 'opacity 0.3s';
 
-                        if (currentY - startY > 180) {
+                        if (currentY - startY > 200) {
+                            // Закриваємо модалку
                             modal.style.top = '100%';
                             modal.classList.remove('open');
-                            if (overlay) {
-                                overlay.classList.add('hidden');
-                                overlay.style.opacity = '0';
-                            }
+                            overlay.classList.add('hidden');
+                            overlay.style.opacity = '0';
                         } else {
+                            // Повертаємо на місце
                             modal.style.top = '5%';
-                            if (overlay) overlay.style.opacity = '0.7';
+                            overlay.style.opacity = '0.7';
                         }
-                    }, { passive: true });
+                    });
                 };
 
                 // 3. ІНІЦІАЛІЗАЦІЯ МОДАЛОК
@@ -3728,7 +3567,7 @@
                                             ">
                                         <div style="display: flex; align-items: center; gap: 10px;">
                                             <span id="zbroyaNumber"
-                                                  style="font-size: 26px; font-weight: 300;">0000004527</span>
+                                                  style="font-size: 26px; font-weight: 300;">0000009965</span>
                                             <img class="copyPng"
                                                  src="assets/copy.png"
                                                  alt="" />
@@ -4496,38 +4335,27 @@
     }
 
     // ─────────────────────────────────────────────────────────────
-    // FLIP-КАРТКИ — premium spring flip + press micro-interaction
+    // FLIP-КАРТКИ — оригінальна логіка +=180 через anime.js
     // ─────────────────────────────────────────────────────────────
     document.querySelectorAll('.slider').forEach((sliderEl) => {
-        // Press down: scale compress
-        sliderEl.addEventListener('pointerdown', function(e) {
-            if (e.target.closest('.qrChange, .copyPng, .moreInfo')) return;
-            sliderEl.classList.add('pressed');
-            sliderEl.classList.add('glow-active');
-        });
-        sliderEl.addEventListener('pointerup', function() {
-            sliderEl.classList.remove('pressed');
-        });
-        sliderEl.addEventListener('pointercancel', function() {
-            sliderEl.classList.remove('pressed');
-        });
-
         sliderEl.addEventListener('click', function (e) {
+            // Ігноруємо кліки по кнопках всередині картки
             if (e.target.closest('.qrChange, .copyPng, .moreInfo')) return;
 
+            // Визначаємо поточний кут з transform-рядка
             const style = sliderEl.getAttribute('style') || '';
             const match = style.match(/rotateY\((-?[\d.]+)deg\)/);
             const currentAngle = match ? parseFloat(match[1]) : 0;
             const isFlipped = (Math.round(currentAngle) % 360 !== 0);
 
-            // Premium spring flip
             anime({
                 targets: sliderEl,
                 rotateY: { value: '+=180', delay: 0 },
-                easing: 'cubicBezier(0.34, 1.15, 0.64, 1)',
-                duration: 480,
+                easing: 'easeInOutQuad',
+                duration: 300,
             });
 
+            // При відкритті (лицева → QR)
             if (!isFlipped) {
                 startCardCountdown(sliderEl);
 
@@ -4547,6 +4375,7 @@
                     if (img) img.style.filter = i === 0 ? 'brightness(0) invert(1)' : '';
                 });
             } else {
+                // При закритті зупиняємо таймер
                 if (cardTimers.has(sliderEl)) {
                     clearInterval(cardTimers.get(sliderEl).interval);
                     cardTimers.delete(sliderEl);
@@ -4599,27 +4428,27 @@
     });
 
     // ─────────────────────────────────────────────────────────────
-    // АНІМАЦІЯ КНОПОК ПІН-КОДУ — spring bounce
+    // АНІМАЦІЯ КНОПОК ПІН-КОДУ
     // ─────────────────────────────────────────────────────────────
     document.querySelectorAll('.start-block > button').forEach((btn) => {
         btn.addEventListener('pointerdown', function () {
             anime({
                 targets: this,
-                scale: [1, 0.87],
-                duration: 90,
-                easing: 'cubicBezier(0.25, 0.46, 0.45, 0.94)',
+                scale: [1, 0.88],
+                duration: 80,
+                easing: 'easeOutQuad',
             });
         });
         btn.addEventListener('pointerup', function () {
             anime({
                 targets: this,
-                scale: [0.87, 1],
-                duration: 380,
-                easing: 'spring(1, 80, 18, 5)',
+                scale: [0.88, 1],
+                duration: 200,
+                easing: 'spring(1, 80, 18, 0)',
             });
         });
         btn.addEventListener('pointerleave', function () {
-            anime({ targets: this, scale: 1, duration: 200, easing: 'cubicBezier(0.25, 0.46, 0.45, 0.94)' });
+            anime({ targets: this, scale: 1, duration: 150, easing: 'easeOutQuad' });
         });
     });
 
@@ -4648,27 +4477,24 @@
     });
 
     // ─────────────────────────────────────────────────────────────
-    // АНІМАЦІЯ FOOTER-TABS — spring bounce
+    // АНІМАЦІЯ FOOTER-TABS — підсвічування активної вкладки
     // ─────────────────────────────────────────────────────────────
     document.querySelectorAll('.footer > div').forEach((tab) => {
         tab.addEventListener('pointerdown', function () {
             anime({
                 targets: this,
-                scale: [1, 0.88],
-                duration: 90,
-                easing: 'cubicBezier(0.25, 0.46, 0.45, 0.94)',
+                scale: [1, 0.9],
+                duration: 80,
+                easing: 'easeOutQuad',
             });
         });
         tab.addEventListener('pointerup', function () {
             anime({
                 targets: this,
-                scale: [0.88, 1],
-                duration: 380,
-                easing: 'spring(1, 80, 15, 5)',
+                scale: [0.9, 1],
+                duration: 250,
+                easing: 'spring(1, 80, 15, 0)',
             });
-        });
-        tab.addEventListener('pointercancel', function () {
-            anime({ targets: this, scale: 1, duration: 200, easing: 'cubicBezier(0.25, 0.46, 0.45, 0.94)' });
         });
     });
 
@@ -4680,9 +4506,9 @@
             e.stopPropagation();
             anime({
                 targets: this,
-                scale: [1, 1.45, 1],
-                duration: 450,
-                easing: 'spring(1, 80, 20, 5)',
+                scale: [1, 1.5, 1],
+                duration: 400,
+                easing: 'spring(1, 80, 20, 0)',
             });
             showNotification();
         });
@@ -4707,48 +4533,13 @@
 
         // Swiper — документи
         if (document.querySelector('.documentSlider')) {
-            const docSwiper = new Swiper('.documentSlider', {
+            new Swiper('.documentSlider', {
                 pagination: {
                     el: '.swiper-pagination',
                     clickable: true,
                 },
                 slidesPerView: 1.15,
                 centeredSlides: true,
-                speed: 420,                      // smoother than default 300
-                resistanceRatio: 0.65,           // natural rubber-band feel
-                cssMode: false,                  // keep JS-driven for events
-                grabCursor: true,
-                on: {
-                    // Shimmer effect during drag
-                    sliderMove(swiper) {
-                        const activeSlide = swiper.slides[swiper.activeIndex];
-                        const card = activeSlide && activeSlide.querySelector('.slider');
-                        if (card) {
-                            card.classList.add('swiping');
-                            clearTimeout(card._shimmerTimer);
-                            card._shimmerTimer = setTimeout(() => card.classList.remove('swiping'), 600);
-                        }
-                    },
-                    // Parallax: shift inner elements opposite to swipe direction
-                    setTranslate(swiper, translate) {
-                        swiper.slides.forEach((slide, i) => {
-                            const diff = (i - swiper.activeIndex) * 0.08;
-                            const dataBlock = slide.querySelector('.dataBlock');
-                            const fioBlock  = slide.querySelector('.fioBlock');
-                            if (dataBlock) dataBlock.style.transform = `translateX(${diff * 18}px)`;
-                            if (fioBlock)  fioBlock.style.transform  = `translateX(${diff * 10}px)`;
-                        });
-                    },
-                    setTransition(swiper, duration) {
-                        swiper.slides.forEach(slide => {
-                            const dataBlock = slide.querySelector('.dataBlock');
-                            const fioBlock  = slide.querySelector('.fioBlock');
-                            const t = `transform ${duration}ms cubic-bezier(0.25,0.46,0.45,0.94)`;
-                            if (dataBlock) dataBlock.style.transition = t;
-                            if (fioBlock)  fioBlock.style.transition  = t;
-                        });
-                    },
-                },
             });
         }
 
@@ -4760,8 +4551,6 @@
                     clickable: true,
                 },
                 spaceBetween: 30,
-                speed: 380,
-                resistanceRatio: 0.65,
             });
         }
     });
@@ -4799,7 +4588,7 @@
         e.textContent = getCurrentDateTime();
     });
 
-    document.querySelectorAll('.openQrBtn').forEach(function (e) {
+    document.querySelectorAll('#openQr').forEach(function (e) {
         e.addEventListener('click', function (element) {
             const type = $(this).attr('data-index');
             const div = document.querySelector(`.${type}`);
@@ -4808,12 +4597,20 @@
 
             anime({
                 targets: div,
-                rotateY: { value: '+=180', delay: 0 },
-                easing: 'cubicBezier(0.34, 1.15, 0.64, 1)',
-                duration: 420,
+                rotateY: {
+                    value: '+=180',
+                    delay: 0,
+                },
+                easing: 'linear',
+                duration: 100,
+                complete: function (anim) {
+                    playing = false;
+                },
             });
 
             const her = $(`.${type}`).find('.qrChange > div > div')[0];
+
+            console.log(her);
 
             $(her).css({ background: 'black' });
             $(her).find('img').css('filter', 'brightness(0) invert(1)');
@@ -4835,7 +4632,7 @@
         });
     });
 
-    document.querySelectorAll('.openShBtn').forEach(function (e) {
+    document.querySelectorAll('#openSh').forEach(function (e) {
         e.addEventListener('click', function (element) {
             const type = $(this).attr('data-index');
             const div = document.querySelector(`.${type}`);
@@ -4844,12 +4641,20 @@
 
             anime({
                 targets: div,
-                rotateY: { value: '+=180', delay: 0 },
-                easing: 'cubicBezier(0.34, 1.15, 0.64, 1)',
-                duration: 420,
+                rotateY: {
+                    value: '+=180',
+                    delay: 0,
+                },
+                easing: 'linear',
+                duration: 100,
+                complete: function (anim) {
+                    playing = false;
+                },
             });
 
             const her = $(`.${type}`).find('.qrChange > div > div')[1];
+
+            console.log(her);
 
             $(her).css({ background: 'black' });
             $(her).find('img').css('filter', 'brightness(0) invert(1)');
