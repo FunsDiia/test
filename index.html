@@ -2715,6 +2715,38 @@
                     display: flex;
                     justify-content: center;
                 }
+
+                /* === Картка: Дозвіл на зберігання і носіння зброї === */
+
+                /* Унікальний фон — теплий попелясто-бронзовий градієнт */
+                .front--zbroya {
+                    background: linear-gradient(
+                        145deg,
+                        rgba(210, 175, 140, 0.55) 0%,
+                        rgba(185, 145, 110, 0.45) 50%,
+                        rgba(160, 120, 90, 0.40) 100%
+                    ) !important;
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                    border: 1px solid rgba(255, 220, 180, 0.35);
+                }
+
+                /* Іконка-пістолет у правому верхньому куті */
+                .zbroya-icon {
+                    position: absolute;
+                    top: 16px;
+                    right: 15px;
+                    width: 36px;
+                    height: 36px;
+                    opacity: 0.25;
+                    color: #3a2a1a;
+                    pointer-events: none;
+                }
+
+                .zbroya-icon svg {
+                    width: 100%;
+                    height: 100%;
+                }
             </style>
             <div class="documentSlider swiper-container">
                 <div class="swiper-wrapper" style="margin-bottom: 20px;">
@@ -3473,6 +3505,119 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- ======= ДОЗВІЛ НА ЗБРОЮ ======= -->
+                    <div class="swiper-slide">
+                        <div class="slider zbroya">
+                            <div class="content front front--zbroya">
+                                <!-- Іконка-пістолет у правому верхньому куті -->
+                                <div class="zbroya-icon" aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M6 26h32l4-8h10v8h-6l2 6H36l-2-4H14"/>
+                                        <path d="M14 26v10h6l2 4h6v-4"/>
+                                        <path d="M20 40l-4 12h6l2-4h4l2 4h6l-4-12"/>
+                                        <circle cx="10" cy="26" r="4"/>
+                                    </svg>
+                                </div>
+
+                                <h1 style="width:0">Дозвіл на зберігання і носіння зброї</h1>
+
+                                <div class="dataBlock">
+                                    <div class="dataInfo" style="width:100%">
+                                        <div style="width:100%">
+                                            <span class="dataInfoFirst">Серія та номер:</span>
+                                            <span id="zbroyaNumber">АБ 123456</span>
+                                        </div>
+                                        <div style="width:100%">
+                                            <span class="dataInfoFirst">Вид зброї:</span>
+                                            <span id="zbroyaType">Пістолет газовий</span>
+                                        </div>
+                                        <div style="width:100%">
+                                            <span class="dataInfoFirst">Модель / Калібр:</span>
+                                            <span id="zbroyaModel">Zoraki 906 / 9 мм</span>
+                                        </div>
+                                        <div style="width:100%">
+                                            <span class="dataInfoFirst">Дата видачі:</span>
+                                            <span id="zbroyaDateGive">15.03.2022</span>
+                                        </div>
+                                        <div style="width:100%">
+                                            <span class="dataInfoFirst">Дійсний до:</span>
+                                            <span id="zboyaDiysnyi">15.03.2027</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="line1 marquee"
+                                     style="
+                                            background: linear-gradient(90deg, #f5c5a3, #e8a87c);
+                                            margin: auto -15px 5px -15px;
+                                            position: relative;
+                                            overflow: hidden;
+                                            font-weight: 300;
+                                            font-size: 13px;
+                                            padding: 7px 0;
+                                        ">
+                                    • Документ оновлено о
+                                    <span id="getCurrentDateTime"></span>
+                                </div>
+
+                                <div class="fioBlock" style="margin-right:0">
+                                    <h2 id="name">Тут твоє ім'я</h2>
+                                    <div class="arrowSvg moreInfo"
+                                         data-index="zbroya"
+                                         style="
+                                                background-color: transparent;
+                                                bottom: 0;
+                                                right: 0;
+                                            ">
+                                        <img style="
+                                                    filter: brightness(1) invert(0);
+                                                    width: 34px;
+                                                    height: 34px;
+                                                    transform: rotate(0);
+                                                "
+                                             src="assets/dots.png"
+                                             alt="" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="content back">
+                                <div class="qrcodeBlock">
+                                    <span>
+                                        Код діятиме ще
+                                        <span data-time="2:59">2:59</span>
+                                        хв
+                                    </span>
+                                    <div class="qrshBlock">
+                                        <div class="qrcode changeCode"></div>
+                                        <div class="shText" style="display:none">
+                                            <span>2048</span>
+                                            <span>7731</span>
+                                            <span>99512</span>
+                                        </div>
+                                    </div>
+                                    <div class="qrChange">
+                                        <div data-index="1">
+                                            <div style="background:black">
+                                                <img src="assets/qr-code.png"
+                                                     style="filter:brightness(0) invert(1)"
+                                                     alt="" />
+                                            </div>
+                                            <span>QR-код</span>
+                                        </div>
+                                        <div data-index="2">
+                                            <div>
+                                                <img src="assets/free-icon-barcode-7797192.png" alt="" />
+                                            </div>
+                                            <span>Штрихкод</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ======= /ДОЗВІЛ НА ЗБРОЮ ======= -->
 
                     <div class="swiper-slide">
                         <div class="slider" style="
