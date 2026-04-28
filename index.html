@@ -556,7 +556,7 @@
     }
 
     .front {
-        position: fixed;
+        position: absolute;
         background-color: rgba(255, 255, 255, 0.4);
     }
 
@@ -4310,54 +4310,30 @@
     }
 
     // ─────────────────────────────────────────────────────────────
-    // FLIP-КАРТКИ: плавний 3D-flip з perspective, ізольований QR
+    // FLIP-КАРТКИ — оригінальна логіка +=180 через anime.js
     // ─────────────────────────────────────────────────────────────
-    // Додаємо perspective на батька кожного slider
     document.querySelectorAll('.slider').forEach((sliderEl) => {
-        // perspective на батьківський swiper-slide
-        const parent = sliderEl.closest('.swiper-slide');
-        if (parent) parent.style.perspective = '1200px';
-
-        sliderEl.style.transformStyle = 'preserve-3d';
-
-        // Поточний кут повороту (відстежуємо вручну)
-        sliderEl._rotateY = 0;
-
         sliderEl.addEventListener('click', function (e) {
-            // Не перегортаємо, якщо клік по інтерактивних елементах зворотньої сторони
+            // Ігноруємо кліки по кнопках всередині картки
             if (e.target.closest('.qrChange, .copyPng, .moreInfo')) return;
 
-            const isFlipped = Math.abs(sliderEl._rotateY % 360) !== 0;
-
-            // Закриваємо всі інші картки назад
-            document.querySelectorAll('.slider').forEach((other) => {
-                if (other !== sliderEl && Math.abs(other._rotateY % 360) !== 0) {
-                    anime({
-                        targets: other,
-                        rotateY: 0,
-                        easing: 'spring(1, 90, 15, 0)',
-                        duration: 600,
-                    });
-                    other._rotateY = 0;
-                }
-            });
-
-            const targetAngle = isFlipped ? 0 : 180;
+            // Визначаємо поточний кут з transform-рядка
+            const style = sliderEl.getAttribute('style') || '';
+            const match = style.match(/rotateY\((-?[\d.]+)deg\)/);
+            const currentAngle = match ? parseFloat(match[1]) : 0;
+            const isFlipped = (Math.round(currentAngle) % 360 !== 0);
 
             anime({
                 targets: sliderEl,
-                rotateY: targetAngle,
-                easing: 'spring(1, 90, 12, 0)',
-                duration: 700,
+                rotateY: { value: '+=180', delay: 0 },
+                easing: 'easeInOutQuad',
+                duration: 300,
             });
 
-            sliderEl._rotateY = targetAngle;
-
-            // Запускаємо таймер тільки при відкритті (flip → QR сторона)
+            // При відкритті (лицева → QR)
             if (!isFlipped) {
                 startCardCountdown(sliderEl);
 
-                // Скидаємо QR/barcode перемикач до дефолту (QR)
                 const qrChange = sliderEl.querySelector('.changeCode');
                 if (qrChange) {
                     qrChange.classList.remove('shcode');
@@ -4367,7 +4343,6 @@
                 const shText = sliderEl.querySelector('.shText');
                 if (shText) shText.style.display = 'none';
 
-                // Підсвічуємо активну кнопку QR
                 const btns = sliderEl.querySelectorAll('.qrChange > div > div');
                 btns.forEach((b, i) => {
                     b.style.background = i === 0 ? 'black' : '#ddd';
@@ -4375,7 +4350,7 @@
                     if (img) img.style.filter = i === 0 ? 'brightness(0) invert(1)' : '';
                 });
             } else {
-                // Зупиняємо таймер при закритті
+                // При закритті зупиняємо таймер
                 if (cardTimers.has(sliderEl)) {
                     clearInterval(cardTimers.get(sliderEl).interval);
                     cardTimers.delete(sliderEl);
@@ -4499,62 +4474,6 @@
     });
 
     // ─────────────────────────────────────────────────────────────
-    // MARQUEE — CSS-анімація замість jQuery плагіну (надійніше)
-    // ─────────────────────────────────────────────────────────────
-    (function initMarquees() {
-        document.querySelectorAll('.line1, .line2').forEach((el) => {
-            const isLine2 = el.classList.contains('line2');
-            const duration = isLine2 ? '18s' : '6s';
-
-            const original = el.innerHTML;
-            // Дублюємо вміст для безперервного руху
-            el.innerHTML = `<span class="mq-inner">${original}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${original}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>`;
-
-            const inner = el.querySelector('.mq-inner');
-            inner.style.cssText = `
-                display: inline-block;
-                white-space: nowrap;
-                animation: marqueeScroll ${duration} linear infinite;
-            `;
-
-            // Зупиняємо при кліку на картку (щоб не перевантажувати)
-            el.addEventListener('click', (e) => e.stopPropagation());
-        });
-
-        // Додаємо keyframes якщо ще немає
-        if (!document.getElementById('mq-style')) {
-            const s = document.createElement('style');
-            s.id = 'mq-style';
-            s.textContent = `
-                @keyframes marqueeScroll {
-                    0%   { transform: translateX(0); }
-                    100% { transform: translateX(-50%); }
-                }
-                .line1, .line2 {
-                    overflow: hidden !important;
-                    display: block !important;
-                }
-            `;
-            document.head.appendChild(s);
-        }
-    })();
-
-    // ─────────────────────────────────────────────────────────────
-    // АНІМАЦІЯ ПОЯВИ КАРТОК при першому рендері документів
-    // ─────────────────────────────────────────────────────────────
-    (function animateCardsOnLoad() {
-        const slides = document.querySelectorAll('.swiper-slide .slider');
-        anime({
-            targets: slides,
-            opacity: [0, 1],
-            translateY: [30, 0],
-            delay: anime.stagger(80, { start: 200 }),
-            duration: 500,
-            easing: 'easeOutCubic',
-        });
-    })();
-
-    // ─────────────────────────────────────────────────────────────
     // COPY — мікро-анімація іконки при копіюванні
     // ─────────────────────────────────────────────────────────────
     document.querySelectorAll('.copyPng').forEach((icon) => {
@@ -4587,7 +4506,7 @@
             }
         });
 
-        // ==== Swiper ====
+        // Swiper — документи
         if (document.querySelector('.documentSlider')) {
             new Swiper('.documentSlider', {
                 pagination: {
@@ -4596,24 +4515,10 @@
                 },
                 slidesPerView: 1.15,
                 centeredSlides: true,
-                // Закриваємо перегорнуті картки при свайпі
-                on: {
-                    slideChangeTransitionStart: function () {
-                        document.querySelectorAll('.slider').forEach((s) => {
-                            if (s._rotateY && Math.abs(s._rotateY % 360) !== 0) {
-                                anime({ targets: s, rotateY: 0, easing: 'spring(1, 90, 15, 0)', duration: 500 });
-                                s._rotateY = 0;
-                                if (cardTimers.has(s)) {
-                                    clearInterval(cardTimers.get(s).interval);
-                                    cardTimers.delete(s);
-                                }
-                            }
-                        });
-                    }
-                }
             });
         }
 
+        // Swiper — новини
         if (document.querySelector('.sliderNews')) {
             new Swiper('.sliderNews', {
                 pagination: {
@@ -4621,95 +4526,6 @@
                     clickable: true,
                 },
                 spaceBetween: 30,
-            });
-        }
-
-        // ==== Spring-анімація відкриття модальних вікон ====
-        // Перевизначаємо bindOpenModal з анімацією
-        document.querySelectorAll('[id^="fullInfo"]').forEach((trigger) => {
-            trigger.addEventListener('click', function () {
-                const modalId = this.id.replace('fullInfo', '').toLowerCase() + '-modal';
-                const modal = document.getElementById(modalId) ||
-                              document.getElementById(this.id.replace('fullInfo', '').charAt(0).toLowerCase() +
-                              this.id.replace('fullInfo', '').slice(1) + '-modal');
-                if (!modal) return;
-
-                // Spring slide-up
-                modal.style.top = '100%';
-                modal.style.display = 'flex';
-                requestAnimationFrame(() => {
-                    modal.style.transition = 'none';
-                    anime({
-                        targets: modal,
-                        top: ['100%', '5%'],
-                        easing: 'spring(1, 100, 18, 0)',
-                        duration: 700,
-                        begin: () => { modal.classList.add('open'); },
-                    });
-                });
-
-                overlay.classList.remove('hidden');
-                anime({ targets: overlay, opacity: [0, 0.7], duration: 300, easing: 'easeOutQuad' });
-            });
-        });
-
-        // Закриття модалок — spring вниз
-        document.querySelectorAll('.modal').forEach((modal) => {
-            const content = modal.querySelector('.modal-content');
-            if (!content) return;
-
-            // Swipe-to-close
-            let startY, isDragging = false;
-            modal.addEventListener('touchstart', (e) => {
-                startY = e.touches[0].clientY;
-                isDragging = true;
-                modal.style.transition = 'none';
-            }, { passive: true });
-
-            modal.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
-                const diff = e.touches[0].clientY - startY;
-                if (content.scrollTop === 0 && diff > 0) {
-                    e.preventDefault();
-                    modal.style.top = `calc(5% + ${diff}px)`;
-                    overlay.style.opacity = Math.max(0, 0.7 - diff / 600);
-                }
-            }, { passive: false });
-
-            modal.addEventListener('touchend', (e) => {
-                isDragging = false;
-                const diff = (e.changedTouches[0]?.clientY ?? startY) - startY;
-                if (diff > 160) {
-                    anime({
-                        targets: modal,
-                        top: '100%',
-                        easing: 'spring(1, 100, 20, 0)',
-                        duration: 500,
-                        complete: () => modal.classList.remove('open'),
-                    });
-                    anime({ targets: overlay, opacity: 0, duration: 300, easing: 'easeOutQuad',
-                        complete: () => overlay.classList.add('hidden') });
-                } else {
-                    anime({ targets: modal, top: '5%', easing: 'spring(1, 100, 18, 0)', duration: 400 });
-                    anime({ targets: overlay, opacity: 0.7, duration: 200, easing: 'easeOutQuad' });
-                }
-            });
-        });
-
-        // Overlay клік — закриваємо всі модалки
-        if (overlay) {
-            overlay.addEventListener('click', function () {
-                document.querySelectorAll('.modal.open').forEach((modal) => {
-                    anime({
-                        targets: modal,
-                        top: '100%',
-                        easing: 'spring(1, 100, 20, 0)',
-                        duration: 500,
-                        complete: () => modal.classList.remove('open'),
-                    });
-                });
-                anime({ targets: overlay, opacity: 0, duration: 300, easing: 'easeOutQuad',
-                    complete: () => overlay.classList.add('hidden') });
             });
         }
     });
