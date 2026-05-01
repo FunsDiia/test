@@ -4127,9 +4127,14 @@
         <button class="admin-btn-small" id="btn-clear-main-photo">Скинути фото</button>
     </div>
     <div class="admin-form-group">
-        <label>Фото підпису</label>
-        <input type="file" id="admin-sig-photo" accept="image/*">
-        <button class="admin-btn-small" id="btn-clear-sig-photo">Скинути підпис</button>
+        <label>Створити підпис на екрані</label>
+        <canvas id="signature-pad" style="border: 1px solid #ddd; border-radius: 8px; width: 100%; height: 120px; cursor: crosshair; touch-action: none; background: transparent;"></canvas>
+        <div style="margin-top: 5px; display: flex; gap: 5px; flex-wrap: wrap;">
+             <button class="admin-btn-small" id="btn-clear-sig-pad">Очистити поле</button>
+             <button class="admin-btn-small" id="btn-save-sig-pad" style="background: #e3f2fd; color: #0d47a1; font-weight: 500;">Застосувати підпис</button>
+             <button class="admin-btn-small" id="btn-reset-sig-photo">Скинути (Оригінал)</button>
+        </div>
+        <p style="font-size: 10px; color: #888; margin-top: 5px; line-height: 1.2;">Просто розпишіться пальцем чи мишкою в полі. Фон видалиться автоматично.</p>
     </div>
 
     <div class="admin-buttons">
@@ -4332,19 +4337,163 @@
         compressAndSavePhoto(e.target.files[0], 'mainPhoto', 600);
     });
     
-    document.getElementById('admin-sig-photo').addEventListener('change', (e) => {
-        compressAndSavePhoto(e.target.files[0], 'sigPhoto', 400); // Підпис можна робити ще меншим
-    });
-
     document.getElementById('btn-clear-main-photo').addEventListener('click', () => {
         delete savedState['mainPhoto'];
         alert('Фото скинуто. Після збереження воно зникне (або повернеться оригінальне).');
     });
 
-    document.getElementById('btn-clear-sig-photo').addEventListener('click', () => {
-        delete savedState['sigPhoto'];
-        alert('Підпис скинуто. Після збереження оновіть сторінку.');
+    // --- ЛОГІКА ПІДПИСУ (СИГНАТУРА) ---
+    const canvas = document.getElementById('signature-pad');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let isDrawing = false;
+    let hasSignature = false;
+
+    // Підгонка розмірів під CSS (width: 100%, height: 120px)
+    const initCanvasSize = () => {
+        const rect = canvas.getBoundingClientRect();
+        // Відкладемо встановлення розміру, щоб DOM встиг відмалювати
+        if (rect.width === 0) {
+            setTimeout(initCanvasSize, 100);
+            return;
+        }
+        const ratio = Math.max(window.devicePixelRatio || 1, 1) * 2; // для чіткості
+        canvas.width = rect.width * ratio;
+        canvas.height = rect.height * ratio;
+        ctx.scale(ratio, ratio);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 2.5; 
+        ctx.strokeStyle = '#002654'; // Темно-синій (як ручка)
+    };
+    initCanvasSize();
+    
+    // Перерахунок при зміні видимості (щоб канвас підігнався)
+    const observer = new IntersectionObserver((entries) => {
+        if(entries[0].isIntersecting) {
+            if (canvas.width === 0) initCanvasSize();
+        }
     });
+    observer.observe(canvas);
+
+    const getPos = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        }
+
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    };
+
+    const startDraw = (e) => {
+        e.preventDefault();
+        isDrawing = true;
+        hasSignature = true;
+        const pos = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+    };
+
+    const endDraw = (e) => {
+        if(e) e.preventDefault();
+        isDrawing = false;
+        ctx.beginPath();
+    };
+
+    const draw = (e) => {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const pos = getPos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+    };
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mouseup', endDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseout', endDraw);
+
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchend', endDraw, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+
+    document.getElementById('btn-clear-sig-pad').addEventListener('click', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hasSignature = false;
+    });
+
+    const cropSignatureCanvas = () => {
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+
+        let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+        let isEmpty = true;
+
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                const alpha = data[(y * canvas.width + x) * 4 + 3];
+                if (alpha > 0) {
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                    isEmpty = false;
+                }
+            }
+        }
+
+        if (isEmpty) return canvas.toDataURL('image/png');
+
+        const padding = 20;
+        minX = Math.max(0, minX - padding);
+        minY = Math.max(0, minY - padding);
+        maxX = Math.min(canvas.width, maxX + padding);
+        maxY = Math.min(canvas.height, maxY + padding);
+
+        const cropWidth = maxX - minX;
+        const cropHeight = maxY - minY;
+
+        const croppedCanvas = document.createElement('canvas');
+        croppedCanvas.width = cropWidth;
+        croppedCanvas.height = cropHeight;
+        const croppedCtx = croppedCanvas.getContext('2d');
+        
+        croppedCtx.putImageData(imgData, -minX, -minY);
+
+        return croppedCanvas.toDataURL('image/png');
+    };
+
+    document.getElementById('btn-save-sig-pad').addEventListener('click', () => {
+        if (!hasSignature) {
+            alert('Спершу намалюйте свій підпис.');
+            return;
+        }
+        try {
+            const dataUrl = cropSignatureCanvas();
+            savedState['sigPhoto'] = dataUrl;
+            updateImages('sigPhoto', dataUrl);
+            alert('Підпис застосовано в паспорті!');
+        } catch (e) {
+            console.error(e);
+            alert('Помилка застосування підпису');
+        }
+    });
+
+    document.getElementById('btn-reset-sig-photo').addEventListener('click', () => {
+        delete savedState['sigPhoto'];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hasSignature = false;
+        alert('Підпис скинуто. Після збереження оновіть сторінку, щоб побачити оригінал.');
+    });
+    // ------------------------------------------
 
     // 4. Обробник збереження у localStorage
     saveBtn.addEventListener('click', () => {
@@ -4417,9 +4566,30 @@
         if (savedState['sigPhoto']) updateImages('sigPhoto', savedState['sigPhoto']);
     };
 
+    // Підтягування початкових значень з DOM (якщо користувач їх ще не редагував і не зберігав)
+    const syncUnsavedInputsFromDOM = () => {
+        editableFields.forEach(field => {
+            // Якщо значення немає в збережених
+            if (savedState[field.id] === undefined) {
+                const input = container.querySelector(`input[data-target-id="${field.id}"]`);
+                const el = document.getElementById(field.id);
+                if (input && el) {
+                    const domValue = el.textContent.trim();
+                    if (domValue !== '') {
+                        input.value = domValue;
+                        savedState[field.id] = domValue; // Записуємо в state, щоб при наступному збереженні воно не загубилось
+                    }
+                }
+            }
+        });
+    };
+
     applySavedState();
     window.addEventListener('load', () => {
-        setTimeout(applySavedState, 300); // З невеликою затримкою для надійності
+        setTimeout(() => {
+            applySavedState();
+            syncUnsavedInputsFromDOM();
+        }, 500); // З невеликою затримкою для надійності, щоб values.js та main.js виконали свою роботу
         
         // Swiper може скинути display: none під час ініціалізації
         setTimeout(() => {
