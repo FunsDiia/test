@@ -4010,7 +4010,7 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 340px;
+        width: 360px;
         max-height: 85vh;
         background: #fff;
         border-radius: 16px;
@@ -4031,6 +4031,13 @@
         font-weight: 300;
         text-align: center;
     }
+    #admin-panel h4 {
+        margin: 20px 0 10px 0;
+        font-size: 16px;
+        font-weight: 500;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+    }
     .admin-form-group {
         margin-bottom: 12px;
     }
@@ -4040,13 +4047,41 @@
         margin-bottom: 4px;
         color: #666;
     }
-    .admin-form-group input {
+    .admin-form-group input[type="text"] {
         width: 100%;
         padding: 10px;
         font-size: 14px;
         border: 1px solid #ddd;
         border-radius: 8px;
         box-sizing: border-box;
+        font-family: 'e-Ukraine', sans-serif;
+    }
+    .admin-form-group input[type="file"] {
+        font-size: 12px;
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    .doc-toggle label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        font-size: 13px !important;
+        color: #000 !important;
+    }
+    .doc-toggle input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-right: 10px;
+        cursor: pointer;
+    }
+    .admin-btn-small {
+        background: #e9edee;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 11px;
+        cursor: pointer;
+        display: inline-block;
         font-family: 'e-Ukraine', sans-serif;
     }
     .admin-buttons {
@@ -4079,7 +4114,24 @@
 <!-- Local State Editor HTML -->
 <div id="admin-panel" data-scroll-lock-scrollable>
     <h3>Редактор даних</h3>
+    
     <div id="admin-inputs-container"></div>
+    
+    <h4>Управління документами</h4>
+    <div id="admin-docs-container"></div>
+    
+    <h4>Фотографії</h4>
+    <div class="admin-form-group">
+        <label>Фото користувача (Головне)</label>
+        <input type="file" id="admin-main-photo" accept="image/*">
+        <button class="admin-btn-small" id="btn-clear-main-photo">Скинути фото</button>
+    </div>
+    <div class="admin-form-group">
+        <label>Фото підпису</label>
+        <input type="file" id="admin-sig-photo" accept="image/*">
+        <button class="admin-btn-small" id="btn-clear-sig-photo">Скинути підпис</button>
+    </div>
+
     <div class="admin-buttons">
         <button id="admin-save-btn" class="admin-btn">Зберегти</button>
         <button id="admin-close-btn" class="admin-btn admin-btn-close">Закрити</button>
@@ -4089,7 +4141,7 @@
 <!-- Local State Editor Script -->
 <script>
 (function(){
-    // Збираємо основні поля (id) для редагування, які є в розмітці
+    // 1. Збираємо основні поля (id) для редагування, які є в розмітці
     const editableFields = [
         { id: "textName", label: "Ім'я (Головна: Привіт, ...)" },
         { id: "name", label: "ПІБ (Укр)" },
@@ -4121,15 +4173,28 @@
         { id: "zbroyaNumber", label: "Номер дозволу на зброю" }
     ];
 
+    // 2. Список документів для можливості включення/виключення
+    const documentTypes = [
+        { key: "doc_eDoc", selector: ".slider.eDoc", label: "єДокумент" },
+        { key: "doc_podatki", selector: ".slider.podatki", label: "Картка платника податків" },
+        { key: "doc_pasport", selector: ".slider.pasport", label: "Паспорт громадянина України" },
+        { key: "doc_dip", selector: ".slider.dip", label: "Диплом бакалавра" },
+        { key: "doc_zagran", selector: ".slider.zagran", label: "Закордонний паспорт" },
+        { key: "doc_study", selector: ".slider.study", label: "Студентський квиток" },
+        { key: "doc_prava", selector: ".slider.prava", label: "Посвідчення водія" },
+        { key: "doc_zbroya", selector: ".slider.zbroya", label: "Дозвіл на зброю" }
+    ];
+
     const panel = document.getElementById('admin-panel');
     const container = document.getElementById('admin-inputs-container');
+    const docsContainer = document.getElementById('admin-docs-container');
     const saveBtn = document.getElementById('admin-save-btn');
     const closeBtn = document.getElementById('admin-close-btn');
 
     const LOCAL_STORAGE_KEY = 'diyaLocalState_v1';
     let savedState = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
 
-    // Функція для оновлення КОЖНОГО DOM-вузла, який має вказаний id
+    // Функція для оновлення текстових DOM-вузлів
     const updateDOM = (id, value) => {
         const elements = document.querySelectorAll('#' + id);
         elements.forEach(el => {
@@ -4139,7 +4204,36 @@
         });
     };
 
-    // Генерація інпутів
+    // Функція для оновлення видимості слайдів документів
+    const updateDocumentVisibility = (selector, isVisible) => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+            const slide = el.closest('.swiper-slide');
+            if (slide) {
+                slide.style.display = isVisible ? '' : 'none';
+            }
+        });
+    };
+
+    // Функція для оновлення фото
+    const updateImages = (key, dataUrl) => {
+        if (!dataUrl) return;
+        if (key === 'mainPhoto') {
+            const selectors = ['#imgPassport', '#imgStudent', '#imgRights', '#imgZagran'];
+            selectors.forEach(sel => {
+                document.querySelectorAll(sel).forEach(img => {
+                    img.src = dataUrl;
+                    img.style.objectFit = 'cover'; // Щоб фото виглядало пропорційно
+                });
+            });
+        } else if (key === 'sigPhoto') {
+            document.querySelectorAll('img[src*="sig.png"]').forEach(img => {
+                img.src = dataUrl;
+            });
+        }
+    };
+
+    // 1. Генерація текстових інпутів
     editableFields.forEach(field => {
         const group = document.createElement('div');
         group.className = 'admin-form-group';
@@ -4151,7 +4245,6 @@
         input.type = 'text';
         input.dataset.targetId = field.id;
 
-        // Підстановка збереженого значення або поточного з DOM
         if (savedState[field.id] !== undefined) {
             input.value = savedState[field.id];
         } else {
@@ -4159,9 +4252,9 @@
             if (el) input.value = el.textContent.trim();
         }
 
-        // Миттєве оновлення значення при введенні
         input.addEventListener('input', (e) => {
             updateDOM(field.id, e.target.value);
+            savedState[field.id] = e.target.value; // Зберігаємо відразу в state, щоб потім все злити
         });
 
         group.appendChild(label);
@@ -4169,18 +4262,108 @@
         container.appendChild(group);
     });
 
-    // Обробник збереження у localStorage
-    saveBtn.addEventListener('click', () => {
-        const stateToSave = {};
-        const inputs = container.querySelectorAll('input');
-        inputs.forEach(input => {
-            stateToSave[input.dataset.targetId] = input.value;
-        });
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+    // 2. Генерація чекбоксів документів
+    documentTypes.forEach(doc => {
+        const group = document.createElement('div');
+        group.className = 'admin-form-group doc-toggle';
+        group.innerHTML = `
+            <label>
+                <input type="checkbox" data-target-key="${doc.key}">
+                ${doc.label}
+            </label>
+        `;
+        const checkbox = group.querySelector('input');
         
-        const originalText = saveBtn.textContent;
-        saveBtn.textContent = 'Збережено!';
-        setTimeout(() => saveBtn.textContent = originalText, 1000);
+        // По замовчуванню включені
+        const isVisible = savedState[doc.key] !== undefined ? savedState[doc.key] : true;
+        checkbox.checked = isVisible;
+
+        checkbox.addEventListener('change', (e) => {
+            savedState[doc.key] = e.target.checked;
+            updateDocumentVisibility(doc.selector, e.target.checked);
+        });
+
+        docsContainer.appendChild(group);
+    });
+
+    // 3. Обробка фотографій
+    const processPhoto = (file, key) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            savedState[key] = dataUrl;
+            updateImages(key, dataUrl);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // Завантаження фото за допомогою canvas для стиснення до localStorage (щоб не перевищити ліміт)
+    const compressAndSavePhoto = (file, key, maxWidth = 600) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                savedState[key] = dataUrl;
+                updateImages(key, dataUrl);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    document.getElementById('admin-main-photo').addEventListener('change', (e) => {
+        compressAndSavePhoto(e.target.files[0], 'mainPhoto', 600);
+    });
+    
+    document.getElementById('admin-sig-photo').addEventListener('change', (e) => {
+        compressAndSavePhoto(e.target.files[0], 'sigPhoto', 400); // Підпис можна робити ще меншим
+    });
+
+    document.getElementById('btn-clear-main-photo').addEventListener('click', () => {
+        delete savedState['mainPhoto'];
+        alert('Фото скинуто. Після збереження воно зникне (або повернеться оригінальне).');
+    });
+
+    document.getElementById('btn-clear-sig-photo').addEventListener('click', () => {
+        delete savedState['sigPhoto'];
+        alert('Підпис скинуто. Після збереження оновіть сторінку.');
+    });
+
+    // 4. Обробник збереження у localStorage
+    saveBtn.addEventListener('click', () => {
+        // Збираємо зі всіх текстових полів
+        const inputs = container.querySelectorAll('input[type="text"]');
+        inputs.forEach(input => {
+            savedState[input.dataset.targetId] = input.value;
+        });
+
+        // Зберігаємо весь state
+        try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(savedState));
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Збережено!';
+            setTimeout(() => saveBtn.textContent = originalText, 1000);
+        } catch (e) {
+            console.error(e);
+            alert("Помилка збереження! Можливо, фотографії занадто великі для пам'яті браузера. Спробуйте вибрати менші файли.");
+        }
     });
 
     // Закриття панелі
@@ -4196,7 +4379,7 @@
         }
     });
 
-    // Потрійний клік по логотипам (Дія та МЦТ)
+    // Потрійний клік по логотипам
     let clickCount = 0;
     let clickTimer = null;
     document.addEventListener('click', (e) => {
@@ -4211,24 +4394,42 @@
         }
     });
 
-    // Відновлення даних при завантаженні (з урахуванням інших скриптів, які можуть змінювати текст)
+    // Відновлення всіх даних при завантаженні
     const applySavedState = () => {
         savedState = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+        
+        // Застосовуємо текст
         Object.keys(savedState).forEach(id => {
+            if (id.startsWith('doc_') || id === 'mainPhoto' || id === 'sigPhoto') return;
             updateDOM(id, savedState[id]);
             const input = container.querySelector(`input[data-target-id="${id}"]`);
             if (input) input.value = savedState[id];
         });
+
+        // Застосовуємо видимість документів
+        documentTypes.forEach(doc => {
+            const isVisible = savedState[doc.key] !== undefined ? savedState[doc.key] : true;
+            updateDocumentVisibility(doc.selector, isVisible);
+        });
+
+        // Застосовуємо фото
+        if (savedState['mainPhoto']) updateImages('mainPhoto', savedState['mainPhoto']);
+        if (savedState['sigPhoto']) updateImages('sigPhoto', savedState['sigPhoto']);
     };
 
-    // Викликаємо одразу та після завантаження сторінки
     applySavedState();
     window.addEventListener('load', () => {
         setTimeout(applySavedState, 300); // З невеликою затримкою для надійності
+        
+        // Swiper може скинути display: none під час ініціалізації
+        setTimeout(() => {
+            documentTypes.forEach(doc => {
+                updateDocumentVisibility(doc.selector, savedState[doc.key] !== undefined ? savedState[doc.key] : true);
+            });
+        }, 1000);
     });
 })();
 </script>
-
 </body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
