@@ -4003,6 +4003,239 @@
     <script src="values.js"></script>
     <!-- Потом сам скрипт, который их использует -->
     <script src="main.js"></script>
+     ===========================================
+  ЛОКАЛЬНИЙ РЕДАКТОР СТАНУ (LOCAL STATE EDITOR)
+  ===========================================
+  Вставте цей блок коду безпосередньо перед закриваючим тегом </body> 
+  у вашому основному файлі index.html.
+-->
+
+<!-- Local State Editor Styles -->
+<style>
+    #admin-panel {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 340px;
+        max-height: 85vh;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        z-index: 999999;
+        overflow-y: auto;
+        padding: 20px;
+        font-family: 'e-Ukraine', sans-serif;
+        color: #000;
+    }
+    #admin-panel.open {
+        display: block;
+    }
+    #admin-panel h3 {
+        margin-top: 0;
+        font-size: 20px;
+        margin-bottom: 15px;
+        font-weight: 300;
+        text-align: center;
+    }
+    .admin-form-group {
+        margin-bottom: 12px;
+    }
+    .admin-form-group label {
+        display: block;
+        font-size: 11px;
+        margin-bottom: 4px;
+        color: #666;
+    }
+    .admin-form-group input {
+        width: 100%;
+        padding: 10px;
+        font-size: 14px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-sizing: border-box;
+        font-family: 'e-Ukraine', sans-serif;
+    }
+    .admin-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+        position: sticky;
+        bottom: -20px;
+        background: #fff;
+        padding-bottom: 20px;
+        padding-top: 10px;
+    }
+    .admin-btn {
+        flex: 1;
+        padding: 12px;
+        font-size: 14px;
+        cursor: pointer;
+        border: none;
+        border-radius: 12px;
+        background: #000;
+        color: #fff;
+        font-family: 'e-Ukraine', sans-serif;
+    }
+    .admin-btn-close {
+        background: #e9edee;
+        color: #000;
+    }
+</style>
+
+<!-- Local State Editor HTML -->
+<div id="admin-panel" data-scroll-lock-scrollable>
+    <h3>Редактор даних</h3>
+    <div id="admin-inputs-container"></div>
+    <div class="admin-buttons">
+        <button id="admin-save-btn" class="admin-btn">Зберегти</button>
+        <button id="admin-close-btn" class="admin-btn admin-btn-close">Закрити</button>
+    </div>
+</div>
+
+<!-- Local State Editor Script -->
+<script>
+(function(){
+    // Збираємо основні поля (id) для редагування, які є в розмітці
+    const editableFields = [
+        { id: "textName", label: "Ім'я (Головна: Привіт, ...)" },
+        { id: "name", label: "ПІБ (Укр)" },
+        { id: "nameEn", label: "ПІБ (Англ)" },
+        { id: "birthDate", label: "Дата народження" },
+        { id: "rnokpp", label: "РНОКПП" },
+        { id: "nomerPasport", label: "Номер паспорта (внутрішній)" },
+        { id: "sex", label: "Стать (Укр)" },
+        { id: "sexEn", label: "Стать (Англ)" },
+        { id: "dateGive", label: "Дата видачі (Паспорт)" },
+        { id: "dateOut", label: "Дійсний до (Паспорт)" },
+        { id: "organ", label: "Орган що видав" },
+        { id: "uznr", label: "Запис № (УНЗР)" },
+        { id: "placeBirth", label: "Місце народження" },
+        { id: "legalAdress", label: "Місце проживання" },
+        { id: "registeredOn", label: "Дата реєстрації" },
+        { id: "zagran_number", label: "Номер закордонного паспорта" },
+        { id: "dateGiveZ", label: "Дата видачі (Закордонний)" },
+        { id: "dateOutZ", label: "Дійсний до (Закордонний)" },
+        { id: "nomerStudy", label: "Номер студентського" },
+        { id: "vidanoStudy", label: "Студ. виданий" },
+        { id: "diusnuyDoStudy", label: "Студ. дійсний до" },
+        { id: "formaStudy", label: "Форма навчання" },
+        { id: "university", label: "Назва ВНЗ" },
+        { id: "fakultat", label: "Факультет" },
+        { id: "pravaNnumber", label: "Номер посвідчення водія" },
+        { id: "rightsCategories", label: "Категорії водія (A, B...)" },
+        { id: "zbroyaType", label: "Тип зброї" },
+        { id: "zbroyaNumber", label: "Номер дозволу на зброю" }
+    ];
+
+    const panel = document.getElementById('admin-panel');
+    const container = document.getElementById('admin-inputs-container');
+    const saveBtn = document.getElementById('admin-save-btn');
+    const closeBtn = document.getElementById('admin-close-btn');
+
+    const LOCAL_STORAGE_KEY = 'diyaLocalState_v1';
+    let savedState = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+
+    // Функція для оновлення КОЖНОГО DOM-вузла, який має вказаний id
+    const updateDOM = (id, value) => {
+        const elements = document.querySelectorAll('#' + id);
+        elements.forEach(el => {
+            if (value !== undefined && value !== '') {
+                el.textContent = value;
+            }
+        });
+    };
+
+    // Генерація інпутів
+    editableFields.forEach(field => {
+        const group = document.createElement('div');
+        group.className = 'admin-form-group';
+
+        const label = document.createElement('label');
+        label.textContent = field.label;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.dataset.targetId = field.id;
+
+        // Підстановка збереженого значення або поточного з DOM
+        if (savedState[field.id] !== undefined) {
+            input.value = savedState[field.id];
+        } else {
+            const el = document.getElementById(field.id);
+            if (el) input.value = el.textContent.trim();
+        }
+
+        // Миттєве оновлення значення при введенні
+        input.addEventListener('input', (e) => {
+            updateDOM(field.id, e.target.value);
+        });
+
+        group.appendChild(label);
+        group.appendChild(input);
+        container.appendChild(group);
+    });
+
+    // Обробник збереження у localStorage
+    saveBtn.addEventListener('click', () => {
+        const stateToSave = {};
+        const inputs = container.querySelectorAll('input');
+        inputs.forEach(input => {
+            stateToSave[input.dataset.targetId] = input.value;
+        });
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+        
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = 'Збережено!';
+        setTimeout(() => saveBtn.textContent = originalText, 1000);
+    });
+
+    // Закриття панелі
+    closeBtn.addEventListener('click', () => {
+        panel.classList.remove('open');
+    });
+
+    // Гарячі клавіші: Ctrl + Shift + X 
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.code === 'KeyX') {
+            e.preventDefault();
+            panel.classList.toggle('open');
+        }
+    });
+
+    // Потрійний клік по логотипам (Дія та МЦТ)
+    let clickCount = 0;
+    let clickTimer = null;
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.diia-logo-black') || e.target.closest('.mct-logo') || e.target.closest('.logos-container')) {
+            clickCount++;
+            if (clickCount === 3) {
+                panel.classList.toggle('open');
+                clickCount = 0;
+            }
+            clearTimeout(clickTimer);
+            clickTimer = setTimeout(() => { clickCount = 0; }, 500);
+        }
+    });
+
+    // Відновлення даних при завантаженні (з урахуванням інших скриптів, які можуть змінювати текст)
+    const applySavedState = () => {
+        savedState = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+        Object.keys(savedState).forEach(id => {
+            updateDOM(id, savedState[id]);
+            const input = container.querySelector(`input[data-target-id="${id}"]`);
+            if (input) input.value = savedState[id];
+        });
+    };
+
+    // Викликаємо одразу та після завантаження сторінки
+    applySavedState();
+    window.addEventListener('load', () => {
+        setTimeout(applySavedState, 300); // З невеликою затримкою для надійності
+    });
+})();
+</script>
 
 </body>
 
